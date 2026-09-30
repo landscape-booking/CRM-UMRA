@@ -299,82 +299,81 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-  // ⚠ ضع رابط الـ WEB APP الخاص بك من شيت جوجل هنا:
+  // رابط الـ WEB APP الخاص بـ Google Apps Script
   const API = "https://script.google.com/macros/s/AKfycbx1rEQ6xMIpKzotgftv_M7xtyLV6XFbT9bMS01nF2tmq2lwyFXnFrcYAw7zFwUZowN7/exec";
 
-  let currUser = null, allData = { clients: [], omraPrograms: [], turkeyPrograms: [] };
+  let currUser = null;
+  let allData = { clients: [], omraPrograms: [], turkeyPrograms: [] };
   let bsClientModal;
   const daysArabic = ["الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
 
   document.addEventListener("DOMContentLoaded", () => {
-    bsClientModal = new bootstrap.Modal(document.getElementById('clientModal'));
+    const clientModalEl = document.getElementById('clientModal');
+    if (clientModalEl) {
+      bsClientModal = new bootstrap.Modal(clientModalEl);
+    }
+    
     const savedUser = localStorage.getItem("crm_user");
     if (savedUser) {
-      currUser = JSON.parse(savedUser);
-      initAppView();
+      try {
+        currUser = JSON.parse(savedUser);
+        initAppView();
+      } catch (e) {
+        localStorage.removeItem("crm_user");
+      }
     }
   });
 
- function initAppView() {
-  document.getElementById("loginBox").classList.add("hidden");
-  document.getElementById("app").classList.remove("hidden");
-  document.getElementById("floatingAddBtn").classList.remove("hidden");
-  
-  // تأمين قراءة بيانات المستخدم
-  const name = currUser.name || currUser.username || "مستخدم";
-  const role = currUser.role || "mowazaf";
-  
-  document.getElementById("userNameTxt").innerText = name;
-  document.getElementById("userRoleTxt").innerText = (role === "admin") ? "مدير النظام" : `الموظف: ${name}`;
-  
-  if (role === "admin") {
-    document.querySelectorAll(".admin-only").forEach(el => el.classList.remove("hidden"));
-  }
-  
-  refreshData();
-}
+  function initAppView() {
+    if (!currUser) return;
 
-async function refreshData() {
-  try {
+    document.getElementById("loginBox").classList.add("hidden");
+    document.getElementById("app").classList.remove("hidden");
+    
+    const floatBtn = document.getElementById("floatingAddBtn");
+    if (floatBtn) floatBtn.classList.remove("hidden");
+    
+    // تأمين قراءة بيانات المستخدم
+    const name = currUser.name || currUser.username || "مستخدم";
     const role = currUser.role || "mowazaf";
-    const code = currUser.code || "";
-    const username = currUser.username || currUser.name || "";
+    
+    document.getElementById("userNameTxt").innerText = name;
+    document.getElementById("userRoleTxt").innerText = (role === "admin") ? "مدير النظام" : `الموظف: ${name}`;
+    
+    if (role === "admin") {
+      document.querySelectorAll(".admin-only").forEach(el => el.classList.remove("hidden"));
+    }
+    
+    refreshData();
+  }
 
-    // إرسال البيانات بشكل صحيح للسيرفر
-    const url = `${API}?action=getData&role=${encodeURIComponent(role)}&code=${encodeURIComponent(code)}&username=${encodeURIComponent(username)}`;
+  async function login() {
+    const u = document.getElementById("userInput").value.trim();
+    const p = document.getElementById("passInput").value.trim();
+    const errDiv = document.getElementById("loginErr");
     
-    const res = await fetch(url);
-    const data = await res.json();
-    
-    // التاكد من وصول البيانات بدون أخطاء
-    if (data) {
-      allData = {
-        clients: Array.isArray(data.clients) ? data.clients : [],
-        omraPrograms: Array.isArray(data.omraPrograms) ? data.omraPrograms : [],
-        turkeyPrograms: Array.isArray(data.turkeyPrograms) ? data.turkeyPrograms : []
-      };
-    } else {
-      allData = { clients: [], omraPrograms: [], turkeyPrograms: [] };
+    if (!u || !p) {
+      errDiv.innerText = "يرجى إدخال اسم المستخدم وكلمة المرور";
+      errDiv.classList.remove("hidden");
+      return;
     }
 
-    renderClients();
-    renderFollowupClients();
-  } catch (err) {
-    console.error("خطأ في جلب البيانات:", err);
-    document.getElementById("clientsTable").innerHTML = `<tr><td colspan="9" class="text-center text-danger py-3">حدث خطأ أثناء تحميل البيانات: ${err.message}</td></tr>`;
-  }
-}
-  async function login() {
-    const u = document.getElementById("userInput").value, p = document.getElementById("passInput").value;
-    const res = await fetch(`${API}?action=login&username=${encodeURIComponent(u)}&password=${encodeURIComponent(p)}`);
-    const data = await res.json();
-    if (data.status === "success") {
-      currUser = data.user;
-      localStorage.setItem("crm_user", JSON.stringify(currUser));
-      initAppView();
-    } else {
-      document.getElementById("loginErr").innerText = data.message;
-      document.getElementById("loginErr").classList.remove("hidden");
+    try {
+      const res = await fetch(`${API}?action=login&username=${encodeURIComponent(u)}&password=${encodeURIComponent(p)}`);
+      const data = await res.json();
+      
+      if (data.status === "success") {
+        currUser = data.user;
+        localStorage.setItem("crm_user", JSON.stringify(currUser));
+        errDiv.classList.add("hidden");
+        initAppView();
+      } else {
+        errDiv.innerText = data.message || "بيانات الدخول غير صحيحة";
+        errDiv.classList.remove("hidden");
+      }
+    } catch (err) {
+      errDiv.innerText = "تعذر الاتصال بالسيرفر، تأكد من اتصال الإنترنت";
+      errDiv.classList.remove("hidden");
     }
   }
 
@@ -384,11 +383,35 @@ async function refreshData() {
   }
 
   async function refreshData() {
-    const res = await fetch(`${API}?action=getData&role=${currUser.role}&code=${encodeURIComponent(currUser.code || '')}&username=${encodeURIComponent(currUser.username || '')}`);
-    allData = await res.json();
-    
-    renderClients();
-    renderFollowupClients();
+    try {
+      const role = currUser?.role || "mowazaf";
+      const code = currUser?.code || "";
+      const username = currUser?.username || currUser?.name || "";
+
+      const url = `${API}?action=getData&role=${encodeURIComponent(role)}&code=${encodeURIComponent(code)}&username=${encodeURIComponent(username)}`;
+      
+      const res = await fetch(url);
+      const data = await res.json();
+      
+      if (data) {
+        allData = {
+          clients: Array.isArray(data.clients) ? data.clients : [],
+          omraPrograms: Array.isArray(data.omraPrograms) ? data.omraPrograms : [],
+          turkeyPrograms: Array.isArray(data.turkeyPrograms) ? data.turkeyPrograms : []
+        };
+      } else {
+        allData = { clients: [], omraPrograms: [], turkeyPrograms: [] };
+      }
+
+      renderClients();
+      renderFollowupClients();
+    } catch (err) {
+      console.error("خطأ في جلب البيانات:", err);
+      const tbody = document.getElementById("clientsTable");
+      if (tbody) {
+        tbody.innerHTML = `<tr><td colspan="9" class="text-center text-danger py-3">حدث خطأ أثناء تحميل البيانات: ${err.message}</td></tr>`;
+      }
+    }
   }
 
   function getStatusRowClass(status) {
@@ -404,9 +427,12 @@ async function refreshData() {
 
   function renderClients() {
     const tbody = document.getElementById("clientsTable");
-    const search = document.getElementById("searchInput").value.toLowerCase().trim();
-    const fromDate = document.getElementById("searchFromDate").value;
-    const toDate = document.getElementById("searchToDate").value;
+    if (!tbody) return;
+
+    const searchInput = document.getElementById("searchInput");
+    const search = searchInput ? searchInput.value.toLowerCase().trim() : "";
+    const fromDate = document.getElementById("searchFromDate")?.value || "";
+    const toDate = document.getElementById("searchToDate")?.value || "";
 
     tbody.innerHTML = "";
 
@@ -416,13 +442,13 @@ async function refreshData() {
     }
 
     const filtered = allData.clients.filter(c => {
-      const fullText = `${c.name} ${c.phone} ${c.address} ${c.programCategory} ${c.programName} ${c.turkeySubName} ${c.status} ${c.fb1} ${c.fb2} ${c.agentName}`.toLowerCase();
+      const fullText = `${c.name || ''} ${c.phone || ''} ${c.address || ''} ${c.programCategory || ''} ${c.programName || ''} ${c.turkeySubName || ''} ${c.status || ''} ${c.fb1 || ''} ${c.fb2 || ''} ${c.agentName || ''}`.toLowerCase();
       const matchesSearch = fullText.includes(search);
 
       let matchesDate = true;
       if (fromDate || toDate) {
         const cDate = c.createdDate ? new Date(c.createdDate) : null;
-        if (cDate) {
+        if (cDate && !isNaN(cDate)) {
           if (fromDate && cDate < new Date(fromDate)) matchesDate = false;
           if (toDate && cDate > new Date(toDate)) matchesDate = false;
         }
@@ -431,12 +457,17 @@ async function refreshData() {
       return matchesSearch && matchesDate;
     });
 
+    if (filtered.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-3">لا توجد نتائج تطابق البحث</td></tr>';
+      return;
+    }
+
     filtered.forEach((c, idx) => {
       const rowClass = getStatusRowClass(c.status);
       const cleanPhone = String(c.phone || '').replace(/[^0-9]/g, '');
       const formattedPhone = cleanPhone.startsWith('0') ? '2' + cleanPhone : cleanPhone;
 
-      const progDisplay = c.programCategory === "تركيا" ? `تركيا: ${c.programName} (${c.turkeySubName || ''})` : `عمرة: ${c.programName}`;
+      const progDisplay = c.programCategory === "تركيا" ? `تركيا: ${c.programName || ''} (${c.turkeySubName || ''})` : `عمرة: ${c.programName || ''}`;
       
       const followupBtn = c.isFollowup 
         ? `<button onclick="toggleFollowup('${c.id}', 'لا')" class="btn btn-sm btn-warning action-btn-sm" title="إلغاء المتابعة"><i class="fa-solid fa-bell"></i></button>`
@@ -445,9 +476,9 @@ async function refreshData() {
       tbody.innerHTML += `
         <tr class="${rowClass}">
           <td class="fw-bold num-dir">${idx + 1}</td>
-          <td><strong>${c.name}</strong></td>
+          <td><strong>${c.name || ''}</strong></td>
           <td>
-            <div class="num-dir fw-bold">${c.phone}</div>
+            <div class="num-dir fw-bold">${c.phone || ''}</div>
             <div class="mt-1">
               <a href="tel:${c.phone}" class="btn btn-sm btn-success action-btn-sm" title="اتصال"><i class="fa-solid fa-phone"></i></a>
               <a href="https://wa.me/${formattedPhone}" target="_blank" class="btn btn-sm btn-primary action-btn-sm" style="background-color: #25D366; border:none;" title="واتساب"><i class="fa-brands fa-whatsapp"></i></a>
@@ -455,10 +486,10 @@ async function refreshData() {
             </div>
           </td>
           <td>${progDisplay}</td>
-          <td><span class="num-dir">${c.members}</span> أفراد<br><small class="text-success fw-bold num-dir">${c.price || 0} ج.م</small></td>
-          <td><span class="badge bg-dark">${c.status}</span></td>
+          <td><span class="num-dir">${c.members || 1}</span> أفراد<br><small class="text-success fw-bold num-dir">${c.price || 0} ج.م</small></td>
+          <td><span class="badge bg-dark">${c.status || ''}</span></td>
           <td><small>${c.fb1 || ''} / ${c.fb2 || ''}</small></td>
-          <td><small class="fw-bold">${c.agentName}</small></td>
+          <td><small class="fw-bold">${c.agentName || ''}</small></td>
           <td>
             ${followupBtn}
             <button onclick="editClient('${c.id}')" class="btn btn-sm btn-outline-dark action-btn-sm ms-1" title="تعديل"><i class="fa-solid fa-pen"></i></button>
@@ -471,15 +502,18 @@ async function refreshData() {
 
   function renderFollowupClients() {
     const tbody = document.getElementById("followupTable");
+    if (!tbody) return;
+
     const badge = document.getElementById("followupBadge");
-    const search = document.getElementById("searchFollowupInput").value.toLowerCase().trim();
+    const searchInput = document.getElementById("searchFollowupInput");
+    const search = searchInput ? searchInput.value.toLowerCase().trim() : "";
     tbody.innerHTML = "";
 
     const list = allData.clients ? allData.clients.filter(c => c.isFollowup === true) : [];
     if (badge) badge.innerText = list.length;
 
     const filtered = list.filter(c => {
-      const fullText = `${c.name} ${c.phone} ${c.programName} ${c.status} ${c.fb1} ${c.fb2}`.toLowerCase();
+      const fullText = `${c.name || ''} ${c.phone || ''} ${c.programName || ''} ${c.status || ''} ${c.fb1 || ''} ${c.fb2 || ''}`.toLowerCase();
       return fullText.includes(search);
     });
 
@@ -493,13 +527,13 @@ async function refreshData() {
       tbody.innerHTML += `
         <tr class="${rowClass}">
           <td class="fw-bold num-dir">${idx + 1}</td>
-          <td><strong>${c.name}</strong></td>
-          <td class="num-dir fw-bold">${c.phone}</td>
+          <td><strong>${c.name || ''}</strong></td>
+          <td class="num-dir fw-bold">${c.phone || ''}</td>
           <td><span class="badge bg-primary">${c.followupDay || ''}</span> <small class="num-dir">(${c.followupDate || ''})</small></td>
-          <td>${c.programName}</td>
-          <td>${c.status}</td>
+          <td>${c.programName || ''}</td>
+          <td>${c.status || ''}</td>
           <td><small>${c.fb1 || ''}</small></td>
-          <td>${c.agentName}</td>
+          <td>${c.agentName || ''}</td>
           <td>
             <button onclick="editClient('${c.id}')" class="btn btn-sm btn-info text-white action-btn-sm me-1"><i class="fa-solid fa-pen"></i></button>
             <button onclick="toggleFollowup('${c.id}', 'لا')" class="btn btn-sm btn-danger action-btn-sm" title="إزالة من المتابعة"><i class="fa-solid fa-xmark"></i></button>
@@ -510,8 +544,8 @@ async function refreshData() {
   }
 
   function clearDateFilter() {
-    document.getElementById("searchFromDate").value = "";
-    document.getElementById("searchToDate").value = "";
+    if (document.getElementById("searchFromDate")) document.getElementById("searchFromDate").value = "";
+    if (document.getElementById("searchToDate")) document.getElementById("searchToDate").value = "";
     renderClients();
   }
 
@@ -529,20 +563,21 @@ async function refreshData() {
   function onCategoryChange() {
     const cat = document.getElementById("cProgramCategory").value;
     const sel = document.getElementById("cProgramName");
+    if (!sel) return;
     sel.innerHTML = "";
     
     if (cat === "تركيا") {
-      document.getElementById("turkeySubDiv").classList.remove("hidden");
+      document.getElementById("turkeySubDiv")?.classList.remove("hidden");
       (allData.turkeyPrograms || []).forEach(p => sel.innerHTML += `<option value="${p}">${p}</option>`);
     } else {
-      document.getElementById("turkeySubDiv").classList.add("hidden");
+      document.getElementById("turkeySubDiv")?.classList.add("hidden");
       (allData.omraPrograms || []).forEach(p => sel.innerHTML += `<option value="${p}">${p}</option>`);
     }
   }
 
   function onStatusChange() {
     const st = document.getElementById("cStatus").value;
-    document.getElementById("customStatusDiv").classList.toggle("hidden", st !== "OTHER");
+    document.getElementById("customStatusDiv")?.classList.toggle("hidden", st !== "OTHER");
   }
 
   function editClient(id) {
@@ -577,7 +612,7 @@ async function refreshData() {
     document.getElementById("cFb2").value = c.fb2 || "";
     
     toggleFollowupFields();
-    bsClientModal.show();
+    if (bsClientModal) bsClientModal.show();
   }
 
   async function saveClient() {
@@ -609,8 +644,8 @@ async function refreshData() {
     const query = new URLSearchParams({
       action: "saveClient",
       id: id,
-      agentCode: currUser.code || '',
-      agentName: currUser.name || '',
+      agentCode: currUser?.code || '',
+      agentName: currUser?.name || currUser?.username || '',
       name: name,
       phone: phone,
       address: document.getElementById("cAddress").value,
@@ -629,27 +664,27 @@ async function refreshData() {
     });
 
     await fetch(`${API}?${query.toString()}`);
-    bsClientModal.hide();
+    if (bsClientModal) bsClientModal.hide();
     refreshData();
   }
 
   async function addProgram(type) {
     const inputId = type === 'تركيا' ? 'npTurkeyName' : 'npOmraName';
-    const name = document.getElementById(inputId).value;
-    if(!name) return;
-    await fetch(`${API}?action=addProgram&programName=${encodeURIComponent(name)}&type=${encodeURIComponent(type)}`);
-    document.getElementById(inputId).value = "";
+    const input = document.getElementById(inputId);
+    if (!input || !input.value) return;
+    await fetch(`${API}?action=addProgram&programName=${encodeURIComponent(input.value)}&type=${encodeURIComponent(type)}`);
+    input.value = "";
     refreshData();
   }
 
   function toggleFollowupFields() {
     const isChecked = document.getElementById("cIsFollowup").checked;
-    document.getElementById("followupFields").classList.toggle("hidden", !isChecked);
+    document.getElementById("followupFields")?.classList.toggle("hidden", !isChecked);
   }
 
   function updateFollowupDayName() {
     const dt = document.getElementById("cFollowupDate").value;
-    if(dt) {
+    if (dt) {
       const d = new Date(dt);
       document.getElementById("cFollowupDay").value = daysArabic[d.getDay()];
     }
@@ -657,12 +692,12 @@ async function refreshData() {
 
   function switchTab(tab) {
     document.querySelectorAll("#mainTabs .nav-link").forEach(a => a.classList.remove("active"));
-    document.getElementById(`t-${tab}`).classList.add("active");
+    document.getElementById(`t-${tab}`)?.classList.add("active");
     ["clients", "followup", "stats", "settings"].forEach(s => {
       const el = document.getElementById(`sec-${s}`);
-      if(el) el.classList.add("hidden");
+      if (el) el.classList.add("hidden");
     });
-    document.getElementById(`sec-${tab}`).classList.remove("hidden");
+    document.getElementById(`sec-${tab}`)?.classList.remove("hidden");
   }
 
   function openClientModal() {
@@ -672,7 +707,7 @@ async function refreshData() {
     onCategoryChange();
     onStatusChange();
     toggleFollowupFields();
-    bsClientModal.show();
+    if (bsClientModal) bsClientModal.show();
   }
 </script>
 </body>
