@@ -3,32 +3,76 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>نظام إدارة المعتمرين CRM</title>
+  <title>نظام إدارة المعتمرين والرحلات CRM</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
-    body { background-color: #f4f6f9; font-family: 'Segoe UI', Tahoma, sans-serif; }
+    body { background-color: #f0f4f8; font-family: 'Segoe UI', Tahoma, sans-serif; }
     .hidden { display: none !important; }
-    .card { border-radius: 10px; border: none; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
-    .whatsapp-btn { color: #25D366; cursor: pointer; font-size: 1.2rem; }
-    .phone-btn { color: #0d6efd; cursor: pointer; font-size: 1.1rem; }
     
-    /* ألوان الصفوف حسب حالة الحجز */
-    tr.row-status-booked td { background-color: #d1e7dd !important; color: #0f5132; } 
-    tr.row-status-thinking td { background-color: #fff3cd !important; color: #664d03; } 
-    tr.row-status-postponed td { background-color: #ffe69c !important; color: #664d03; } 
-    tr.row-status-whatsapp td { background-color: #cff4fc !important; color: #055160; } 
-    tr.row-status-rejected td { background-color: #f8d7da !important; color: #842029; } 
-    tr.row-status-noanswer td { background-color: #e2e3e5 !important; color: #41464b; } 
-    tr.row-status-newad td { background-color: #e0cffc !important; color: #3d0a91; font-weight: bold; } 
+    /* تصميم الحواف الدائرية والكروت */
+    .card, .form-control, .form-select, .btn, .table-responsive {
+      border-radius: 12px !important;
+    }
+    .card { border: none; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+
+    /* رأس الجدول باللون الأزرق الجذاب وحواف دائرية */
+    .table thead th {
+      background-color: #0d6efd !important;
+      color: #ffffff !important;
+      border: none;
+      white-space: nowrap;
+    }
+    .table thead th:first-child { border-top-right-radius: 12px; }
+    .table thead th:last-child { border-top-left-radius: 12px; }
+    
+    /* 🔢 إجبار الأرقام على العرض الصحيح من اليسار إلى اليمين */
+    .num-dir {
+      direction: ltr !important;
+      display: inline-block;
+      text-align: right;
+    }
+
+    /* زر الإضافة العائم الدائري */
+    .btn-floating-add {
+      position: fixed;
+      bottom: 25px;
+      left: 25px;
+      width: 60px;
+      height: 60px;
+      border-radius: 50% !important;
+      background-color: #198754;
+      color: white;
+      border: none;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.8rem;
+      z-index: 1050;
+      transition: transform 0.2s;
+    }
+    .btn-floating-add:hover { transform: scale(1.1); color: white; }
+
+    /* أزرار الاتصال السريع */
+    .action-btn-sm {
+      width: 30px;
+      height: 30px;
+      padding: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50% !important;
+      margin: 0 1px;
+    }
   </style>
 </head>
 <body class="p-2 p-md-4">
 
-<div class="container-fluid" style="max-width: 1250px;">
+<div class="container-fluid" style="max-width: 1400px;">
 
-  <!-- تسجيل الدخول -->
-  <div id="loginBox" class="card p-4 mx-auto shadow mt-5" style="max-width: 400px;">
+  <!-- شاشة تسجيل الدخول -->
+  <div id="loginBox" class="card p-4 mx-auto shadow mt-5" style="max-width: 400px; border-radius: 16px !important;">
     <h4 class="text-center text-primary mb-3"><i class="fa-solid fa-users-gear me-2"></i>تسجيل الدخول</h4>
     <input type="text" id="userInput" class="form-control mb-2" placeholder="اسم المستخدم">
     <input type="password" id="passInput" class="form-control mb-3" placeholder="كلمة المرور">
@@ -39,63 +83,56 @@
   <!-- التطبيق الرئيسي -->
   <div id="app" class="hidden">
     <!-- الشريط العلوي -->
-    <div class="d-flex justify-content-between align-items-center bg-white p-3 rounded mb-3 shadow-sm">
+    <div class="d-flex justify-content-between align-items-center bg-white p-3 mb-3 shadow-sm" style="border-radius: 16px !important;">
       <div>
-        <h5 id="userNameTxt" class="m-0 text-success fw-bold"></h5>
+        <h5 id="userNameTxt" class="m-0 text-primary fw-bold"></h5>
         <small id="userRoleTxt" class="text-muted"></small>
       </div>
-      <div>
-        <button onclick="openClientModal()" class="btn btn-success me-2"><i class="fa-solid fa-plus me-1"></i> إضافة معتمر جديد</button>
-        <button onclick="logout()" class="btn btn-outline-danger btn-sm"><i class="fa-solid fa-right-from-bracket"></i></button>
-      </div>
+      <button onclick="logout()" class="btn btn-outline-danger btn-sm"><i class="fa-solid fa-right-from-bracket me-1"></i> خروج</button>
     </div>
 
-    <!-- التنويهات والتذكيرات -->
-    <div id="remindersArea" class="mb-3"></div>
-
     <!-- تبويبات التصفح -->
-    <ul class="nav nav-tabs mb-3" id="mainTabs">
+    <ul class="nav nav-pills mb-3 gap-2" id="mainTabs">
       <li class="nav-item"><a class="nav-link active" id="t-clients" href="#" onclick="switchTab('clients')"><i class="fa-solid fa-address-book me-1"></i> سجلات المعتمرين</a></li>
       <li class="nav-item"><a class="nav-link" id="t-followup" href="#" onclick="switchTab('followup')"><i class="fa-solid fa-clock-rotate-left me-1"></i> صفحة المتابعة <span id="followupBadge" class="badge bg-warning text-dark ms-1">0</span></a></li>
       <li class="nav-item hidden admin-only"><a class="nav-link" id="t-stats" href="#" onclick="switchTab('stats')"><i class="fa-solid fa-chart-pie me-1"></i> الإحصائيات والعمولات</a></li>
-      <li class="nav-item hidden admin-only"><a class="nav-link" id="t-settings" href="#" onclick="switchTab('settings')"><i class="fa-solid fa-gear me-1"></i> إدارة السيستم</a></li>
+      <li class="nav-item hidden admin-only"><a class="nav-link" id="t-settings" href="#" onclick="switchTab('settings')"><i class="fa-solid fa-gear me-1"></i> إدارة البرامج والسيستم</a></li>
     </ul>
 
     <!-- عرض السجلات العامة -->
     <div id="sec-clients" class="card p-3 shadow-sm">
       <div class="row g-2 mb-3 align-items-center">
         <div class="col-md-4">
-          <h6 class="text-primary m-0"><i class="fa-solid fa-address-book me-2"></i>سجل العملاء والرحلات</h6>
-        </div>
-        <!-- فلتر التاريخ -->
-        <div class="col-md-4">
-          <div class="input-group input-group-sm">
-            <span class="input-group-text bg-light fw-bold">التاريخ:</span>
-            <input type="date" id="filterDate" class="form-control" onchange="onDateFilterChange()">
-            <span id="filterDayName" class="input-group-text bg-warning text-dark fw-bold">الكل</span>
-            <button class="btn btn-outline-secondary" onclick="clearDateFilter()" title="إلغاء الفلتر"><i class="fa-solid fa-xmark"></i></button>
-          </div>
-        </div>
-        <!-- خانة البحث الفوري -->
-        <div class="col-md-4">
-          <div class="input-group input-group-sm">
+          <div class="input-group">
             <span class="input-group-text bg-white"><i class="fa-solid fa-magnifying-glass text-muted"></i></span>
-            <input type="text" id="searchInput" class="form-control" placeholder="ابحث بالاسم أو رقم الهاتف..." onkeyup="renderClients()">
+            <input type="text" id="searchInput" class="form-control" placeholder="ابحث باسم المعتمر، الهاتف، الرحلة، الفيدباك..." onkeyup="renderClients()">
           </div>
+        </div>
+        <!-- خيارات البحث بالتاريخ -->
+        <div class="col-md-3">
+          <input type="date" id="searchFromDate" class="form-control" onchange="renderClients()" title="من تاريخ">
+        </div>
+        <div class="col-md-3">
+          <input type="date" id="searchToDate" class="form-control" onchange="renderClients()" title="إلى تاريخ">
+        </div>
+        <div class="col-md-2">
+          <button onclick="clearDateFilter()" class="btn btn-outline-secondary w-100">إلغاء التواريخ</button>
         </div>
       </div>
 
       <div class="table-responsive">
-        <table class="table table-hover align-middle" style="font-size: 0.88rem;">
-          <thead class="table-dark">
+        <table class="table align-middle" style="font-size: 0.88rem;">
+          <thead>
             <tr>
-              <th>اسم العميل / العنوان</th>
-              <th>التواصل والهاتف</th>
-              <th>البرنامج والسعر</th>
-              <th>الأفراد</th>
+              <th style="width: 40px;">#</th>
+              <th>اسم العميل</th>
+              <th>رقم الموبايل / التواصل</th>
+              <th>نوع الرحلة / البرنامج</th>
+              <th>الأفراد / السعر</th>
               <th>الحالة</th>
-              <th>الموظف المسؤول</th>
-              <th>إجراء</th>
+              <th>الفيدباك</th>
+              <th>الموظف</th>
+              <th style="width: 120px;">إجراءات</th>
             </tr>
           </thead>
           <tbody id="clientsTable"></tbody>
@@ -105,21 +142,28 @@
 
     <!-- صفحة المتابعة -->
     <div id="sec-followup" class="card p-3 shadow-sm hidden">
-      <div class="d-flex justify-content-between align-items-center mb-3">
-        <h6 class="text-warning text-dark m-0"><i class="fa-solid fa-clipboard-list me-2"></i>قائمة المتابعات المحددة</h6>
-        <small class="text-muted">عرض العملاء الذين تم تفعيل خيار المتابعة لهم فقط</small>
+      <div class="row g-2 mb-3 align-items-center">
+        <div class="col-md-6">
+          <h6 class="text-primary m-0"><i class="fa-solid fa-clipboard-list me-2"></i>قائمة المتابعات المحددة</h6>
+        </div>
+        <div class="col-md-6">
+          <input type="text" id="searchFollowupInput" class="form-control" placeholder="بحث داخل صفحة المتابعة..." onkeyup="renderFollowupClients()">
+        </div>
       </div>
 
       <div class="table-responsive">
-        <table class="table table-hover align-middle" style="font-size: 0.88rem;">
-          <thead class="table-warning">
+        <table class="table align-middle" style="font-size: 0.88rem;">
+          <thead>
             <tr>
-              <th>اسم العميل / الهاتف</th>
-              <th>تاريخ موعد المتابعة</th>
+              <th style="width: 40px;">#</th>
+              <th>اسم العميل</th>
+              <th>الهاتف</th>
+              <th>موعد المتابعة</th>
               <th>البرنامج</th>
-              <th>الحالة الحالية</th>
-              <th>الموظف المسؤول</th>
-              <th>إجراءات المتابعة</th>
+              <th>الحالة</th>
+              <th>الفيدباك</th>
+              <th>الموظف</th>
+              <th>إجراءات</th>
             </tr>
           </thead>
           <tbody id="followupTable"></tbody>
@@ -127,28 +171,12 @@
       </div>
     </div>
 
-    <!-- قسم الإحصائيات والعمولات -->
+    <!-- قسم الإحصائيات -->
     <div id="sec-stats" class="hidden">
       <div class="row g-3 mb-3">
         <div class="col-md-4"><div class="card p-3 bg-primary text-white"><h6>إجمالي مبيعات الحجوزات المؤكدة</h6><h3 id="statTotalSales">0 ج.م</h3></div></div>
-        <div class="col-md-4"><div class="card p-3 bg-success text-white"><h6>إجمالي المعتمرين (الأفراد) المحجوزين</h6><h3 id="statBookedCount">0 أفراد</h3></div></div>
-        <div class="col-md-4"><div class="card p-3 bg-warning text-dark"><h6>إجمالي العمولات المستحقة (500ج / فرد)</h6><h3 id="statTotalComm">0 ج.م</h3></div></div>
-      </div>
-      <div class="card p-3 shadow-sm">
-        <h6 class="text-primary border-bottom pb-2"><i class="fa-solid fa-calculator me-2"></i>تقرير العمولات المخصصة للموظفين (حالات الحجز فقط)</h6>
-        <div class="table-responsive">
-          <table class="table table-bordered table-striped align-middle text-center mt-2" style="font-size:0.9rem;">
-            <thead class="table-light">
-              <tr>
-                <th>الموظف المسؤول</th>
-                <th>إجمالي الأفراد المحجوزين</th>
-                <th>إجمالي دخل الحجوزات</th>
-                <th>العمولة المستحقة (500 ج.م / فرد)</th>
-              </tr>
-            </thead>
-            <tbody id="agentStatsTable"></tbody>
-          </table>
-        </div>
+        <div class="col-md-4"><div class="card p-3 bg-success text-white"><h6>إجمالي المعتمرين المحجوزين</h6><h3 id="statBookedCount">0 أفراد</h3></div></div>
+        <div class="col-md-4"><div class="card p-3 bg-warning text-dark"><h6>إجمالي العمولات (500ج / فرد)</h6><h3 id="statTotalComm">0 ج.م</h3></div></div>
       </div>
     </div>
 
@@ -157,21 +185,19 @@
       <div class="row g-3">
         <div class="col-md-6">
           <div class="card p-3">
-            <h6><i class="fa-solid fa-user-plus me-1"></i> إضافة موظف جديد</h6>
-            <input type="text" id="nuName" class="form-control mb-2" placeholder="الاسم كامل">
-            <input type="text" id="nuUser" class="form-control mb-2" placeholder="اسم المستخدم">
-            <input type="password" id="nuPass" class="form-control mb-2" placeholder="كلمة المرور">
-            <input type="text" id="nuCode" class="form-control mb-2" placeholder="كود الموظف (فريد)">
-            <select id="nuRole" class="form-select mb-2"><option value="agent">موظف (Agent)</option><option value="admin">مدير (Admin)</option></select>
-            <button onclick="addUser()" class="btn btn-primary btn-sm">حفظ الموظف</button>
+            <h6><i class="fa-solid fa-kaaba me-1"></i> إضافة برنامج عمرة جديد</h6>
+            <div class="d-flex gap-2 mt-2">
+              <input type="text" id="npOmraName" class="form-control" placeholder="اسم برنامج العمرة">
+              <button onclick="addProgram('عمرة')" class="btn btn-success btn-sm text-nowrap">إضافة</button>
+            </div>
           </div>
         </div>
         <div class="col-md-6">
-          <div class="card p-3 mb-3">
-            <h6><i class="fa-solid fa-folder-plus me-1"></i> إضافة برنامج جديد</h6>
-            <div class="d-flex gap-2">
-              <input type="text" id="npName" class="form-control" placeholder="اسم البرنامج">
-              <button onclick="addProgram()" class="btn btn-success btn-sm text-nowrap">إضافة</button>
+          <div class="card p-3">
+            <h6><i class="fa-solid fa-plane-departure me-1"></i> إضافة برنامج تركيا جديد</h6>
+            <div class="d-flex gap-2 mt-2">
+              <input type="text" id="npTurkeyName" class="form-control" placeholder="اسم برنامج تركيا">
+              <button onclick="addProgram('تركيا')" class="btn btn-info btn-sm text-white text-nowrap">إضافة</button>
             </div>
           </div>
         </div>
@@ -181,26 +207,50 @@
   </div>
 </div>
 
+<!-- زر الإضافة العائم الأخضر -->
+<button id="floatingAddBtn" onclick="openClientModal()" class="btn-floating-add hidden" title="إضافة عميل جديد">
+  <i class="fa-solid fa-plus"></i>
+</button>
+
 <!-- Modal إضافة / تعديل معتمر -->
 <div class="modal fade" id="clientModal" tabindex="-1">
   <div class="modal-dialog modal-lg">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="modalTitle">بيانات العميل</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+    <div class="modal-content" style="border-radius: 16px !important;">
+      <div class="modal-header bg-primary text-white" style="border-top-left-radius: 16px; border-top-right-radius: 16px;">
+        <h5 class="modal-title" id="modalTitle">بيانات العميل والرحلة</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
         <input type="hidden" id="cId" value="0">
         <div class="row g-2">
-          <div class="col-md-6"><label class="form-label">الاسم</label><input type="text" id="cName" class="form-control" required></div>
-          <div class="col-md-6"><label class="form-label">الهاتف</label><input type="tel" id="cPhone" class="form-control" required></div>
+          <div class="col-md-6"><label class="form-label">اسم العميل</label><input type="text" id="cName" class="form-control" required></div>
+          <div class="col-md-6"><label class="form-label">رقم الموبايل</label><input type="tel" id="cPhone" class="form-control num-dir" placeholder="01xxxxxxxxx" required></div>
           <div class="col-md-6"><label class="form-label">العنوان</label><input type="text" id="cAddress" class="form-control"></div>
-          <div class="col-md-6"><label class="form-label">عدد الأفراد</label><input type="number" id="cMembers" class="form-control" value="1" min="1"></div>
-          <div class="col-md-6"><label class="form-label">البرنامج</label><select id="cProgram" class="form-select"></select></div>
-          <div class="col-md-6"><label class="form-label">السعر المتفق عليه</label><input type="number" id="cPrice" class="form-control"></div>
+          <div class="col-md-6"><label class="form-label">عدد الأفراد</label><input type="number" id="cMembers" class="form-control num-dir" value="1" min="1"></div>
+          
+          <div class="col-md-6">
+            <label class="form-label">نوع الرحلة</label>
+            <select id="cProgramCategory" class="form-select" onchange="onCategoryChange()">
+              <option value="عمرة">عمرة</option>
+              <option value="تركيا">رحلات تركيا</option>
+            </select>
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label">البرنامج / الرحلة</label>
+            <select id="cProgramName" class="form-select"></select>
+          </div>
+
+          <div class="col-md-12 hidden" id="turkeySubDiv">
+            <label class="form-label text-info fw-bold">اسم رحلة تركيا المخصصة</label>
+            <input type="text" id="cTurkeySubName" class="form-control border-info" placeholder="اكتب اسم رحلة تركيا بالتفصيل...">
+          </div>
+
+          <div class="col-md-6"><label class="form-label">السعر المتفق عليه</label><input type="number" id="cPrice" class="form-control num-dir"></div>
+          
           <div class="col-md-6">
             <label class="form-label">حالة الحجز</label>
-            <select id="cStatus" class="form-select" onchange="togglePostpone()">
+            <select id="cStatus" class="form-select" onchange="onStatusChange()">
               <option value="حجز">حجز</option>
               <option value="بيفكر">بيفكر</option>
               <option value="هياجل لشهر تاني">هياجل لشهر تاني</option>
@@ -208,18 +258,19 @@
               <option value="مش هيحجز">مش هيحجز</option>
               <option value="قفل السكه في وشي">قفل السكه في وشي</option>
               <option value="مش بيرد">مش بيرد</option>
+              <option value="OTHER">غير ذلك... (إضافة حالة يدوي)</option>
             </select>
           </div>
-          <div class="col-md-6 hidden" id="postponeDiv">
-            <label class="form-label">شهر التأجيل</label>
-            <input type="month" id="cPostponeDate" class="form-control">
+
+          <div class="col-md-12 hidden" id="customStatusDiv">
+            <label class="form-label text-warning fw-bold">حالة مخصصة (لهذا العميل فقط)</label>
+            <input type="text" id="cCustomStatus" class="form-control border-warning" placeholder="اكتب الحالة المخصصة...">
           </div>
 
-          <!-- خيار تفعيل المتابعة -->
-          <div class="col-12 border-top pt-2 mt-2">
+          <div class="col-md-12 border-top pt-2 mt-2">
             <div class="form-check form-switch">
-              <input class="form-check-input" type="checkbox" id="cHasFollowup" onchange="toggleFollowupOptions()">
-              <label class="form-check-label fw-bold text-primary" for="cHasFollowup">تفعيل تذكير ومتابعة للعميل</label>
+              <input class="form-check-input" type="checkbox" id="cIsFollowup" onchange="toggleFollowupFields()">
+              <label class="form-check-label fw-bold text-primary" for="cIsFollowup">إضافة لصفحة المتابعة</label>
             </div>
           </div>
 
@@ -229,8 +280,8 @@
               <input type="date" id="cFollowupDate" class="form-control" onchange="updateFollowupDayName()">
             </div>
             <div class="col-md-6">
-              <label class="form-label">اسم اليوم للمتابعة</label>
-              <input type="text" id="cFollowupDay" class="form-control bg-light" readonly placeholder="يحدد تلقائياً">
+              <label class="form-label">يوم المتابعة</label>
+              <input type="text" id="cFollowupDay" class="form-control bg-light" readonly>
             </div>
           </div>
 
@@ -246,46 +297,35 @@
   </div>
 </div>
 
-<!-- Modal اختيار رسالة واتساب -->
-<div class="modal fade" id="waModal" tabindex="-1">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header"><h5 class="modal-title">إرسال رسالة واتساب</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-      <div class="modal-body">
-        <p class="text-muted mb-2">اختر نموذج الرسالة للعميل: <strong id="waClientName"></strong></p>
-        <div class="d-grid gap-2">
-          <button class="btn btn-outline-primary text-start" onclick="sendWA('welcome')"><i class="fa-solid fa-hand-shake me-2"></i> 1. رسالة ترحيبية بالعميل</button>
-          <button class="btn btn-outline-success text-start" onclick="sendWA('offers')"><i class="fa-solid fa-tags me-2"></i> 2. التذكير بأحدث العروض والرحلات</button>
-          <button class="btn btn-outline-warning text-dark text-start" onclick="sendWA('followup')"><i class="fa-solid fa-clock-rotate-left me-2"></i> 3. رسالة متابعة واستفسار</button>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-  // ⚠️ ضع رابط الـ WEB APP الخاص بك هنا:
-  const API = "https://script.google.com/macros/s/AKfycbziVKHxTb-Xzw7kYdlwCh2qmuePHW_AtzaaTSIUMv8P6BY7toG4dReE3LgkRmMtaI26/exec";
+  // ⚠ ضع رابط الـ WEB APP الخاص بك من شيت جوجل هنا:
+  const API = "https://script.google.com/macros/s/AKfycbx1WcTEVI1KbxYUQCAu1JIBWajHX2bx1amjwZKgcrzlbr87vDNRxScGAfKMbL5Uarmh/exec";
 
-  let currUser = null, allData = {}, targetClientWA = null;
-  let bsClientModal, bsWaModal;
-
+  let currUser = null, allData = { clients: [], omraPrograms: [], turkeyPrograms: [] };
+  let bsClientModal;
   const daysArabic = ["الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
 
   document.addEventListener("DOMContentLoaded", () => {
     bsClientModal = new bootstrap.Modal(document.getElementById('clientModal'));
-    bsWaModal = new bootstrap.Modal(document.getElementById('waModal'));
+    const savedUser = localStorage.getItem("crm_user");
+    if (savedUser) {
+      currUser = JSON.parse(savedUser);
+      initAppView();
+    }
   });
 
-  /* دالة للتحقق الشامل من تفعيل خيار المتابعة بكافة الصيغ */
-  function isFollowupActive(val) {
-    if (val === true || val === 1) return true;
-    if (typeof val === 'string') {
-      const v = val.trim().toLowerCase();
-      return v === "true" || v === "1" || v === "yes" || v === "نعم";
+  function initAppView() {
+    document.getElementById("loginBox").classList.add("hidden");
+    document.getElementById("app").classList.remove("hidden");
+    document.getElementById("floatingAddBtn").classList.remove("hidden");
+    document.getElementById("userNameTxt").innerText = currUser.name;
+    document.getElementById("userRoleTxt").innerText = currUser.role === "admin" ? "مدير النظام" : `الموظف: ${currUser.name}`;
+    
+    if (currUser.role === "admin") {
+      document.querySelectorAll(".admin-only").forEach(el => el.classList.remove("hidden"));
     }
-    return false;
+    refreshData();
   }
 
   async function login() {
@@ -294,291 +334,260 @@
     const data = await res.json();
     if (data.status === "success") {
       currUser = data.user;
-      document.getElementById("loginBox").classList.add("hidden");
-      document.getElementById("app").classList.remove("hidden");
-      document.getElementById("userNameTxt").innerText = currUser.name;
-      document.getElementById("userRoleTxt").innerText = currUser.role === "admin" ? "مدير النظام" : `كود الموظف: ${currUser.code}`;
-      
-      if (currUser.role === "admin") {
-        document.querySelectorAll(".admin-only").forEach(el => el.classList.remove("hidden"));
-      }
-      refreshData();
+      localStorage.setItem("crm_user", JSON.stringify(currUser));
+      initAppView();
     } else {
       document.getElementById("loginErr").innerText = data.message;
       document.getElementById("loginErr").classList.remove("hidden");
     }
   }
 
+  function logout() {
+    localStorage.removeItem("crm_user");
+    location.reload();
+  }
+
   async function refreshData() {
-    const res = await fetch(`${API}?action=getData&role=${currUser.role}&code=${currUser.code}`);
+    const res = await fetch(`${API}?action=getData&role=${currUser.role}&code=${encodeURIComponent(currUser.code || '')}&username=${encodeURIComponent(currUser.username || '')}`);
     allData = await res.json();
     
     renderClients();
     renderFollowupClients();
-    renderPrograms();
-    checkReminders();
-
-    if (currUser.role === "admin") {
-      renderStats();
-    }
   }
 
-  function getRowColorClass(status, agentCode) {
-    if (agentCode === "FORM_AD") return "row-status-newad";
-    switch(status) {
-      case "حجز": return "row-status-booked";
-      case "بيفكر": return "row-status-thinking";
-      case "هياجل لشهر تاني": return "row-status-postponed";
-      case "متابعه واتساب": return "row-status-whatsapp";
-      case "مش هيحجز":
-      case "قفل السكه في وشي": return "row-status-rejected";
-      case "مش بيرد": return "row-status-noanswer";
-      default: return "";
-    }
-  }
-
-  function normalizeDateStr(rawDateStr) {
-    if (!rawDateStr) return "";
-    try {
-      const d = new Date(rawDateStr);
-      if (isNaN(d.getTime())) return String(rawDateStr).trim();
-      const yr = d.getFullYear();
-      const mo = String(d.getMonth() + 1).padStart(2, '0');
-      const da = String(d.getDate()).padStart(2, '0');
-      return `${yr}-${mo}-${da}`;
-    } catch(e) {
-      return String(rawDateStr).trim();
-    }
-  }
-
-  function getDayNameFromDate(dateStr) {
-    if (!dateStr) return "";
-    const d = new Date(dateStr);
-    return isNaN(d.getDay()) ? "" : daysArabic[d.getDay()];
-  }
-
-  function onDateFilterChange() {
-    const dt = document.getElementById("filterDate").value;
-    document.getElementById("filterDayName").innerText = dt ? getDayNameFromDate(dt) : "الكل";
-    renderClients();
-  }
-
-  function clearDateFilter() {
-    document.getElementById("filterDate").value = "";
-    document.getElementById("filterDayName").innerText = "الكل";
-    renderClients();
+  function getStatusRowClass(status) {
+    if (!status) return "";
+    const st = String(status).trim();
+    if (st.includes("حجز") && !st.includes("مش")) return "table-success";
+    if (st.includes("بيفكر")) return "table-warning";
+    if (st.includes("هياجل")) return "table-info";
+    if (st.includes("واتساب")) return "table-light";
+    if (st.includes("مش") || st.includes("قفل")) return "table-danger";
+    return "table-secondary";
   }
 
   function renderClients() {
     const tbody = document.getElementById("clientsTable");
     const search = document.getElementById("searchInput").value.toLowerCase().trim();
-    const rawFilterDate = document.getElementById("filterDate").value;
-    const filterDateNorm = normalizeDateStr(rawFilterDate);
+    const fromDate = document.getElementById("searchFromDate").value;
+    const toDate = document.getElementById("searchToDate").value;
 
     tbody.innerHTML = "";
 
     if (!allData.clients || allData.clients.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-3">لا توجد سجلات حالياً</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-3">لا توجد سجلات متاحة</td></tr>';
       return;
     }
 
     const filtered = allData.clients.filter(c => {
-      const matchSearch = c.name.toLowerCase().includes(search) || String(c.phone).includes(search);
-      
-      let matchDate = true;
-      if (filterDateNorm) {
-        const cDate = normalizeDateStr(c.createdDate || c.date);
-        const fDate = normalizeDateStr(c.followupDate);
-        matchDate = (cDate === filterDateNorm) || (fDate === filterDateNorm);
+      const fullText = `${c.name} ${c.phone} ${c.address} ${c.programCategory} ${c.programName} ${c.turkeySubName} ${c.status} ${c.fb1} ${c.fb2} ${c.agentName}`.toLowerCase();
+      const matchesSearch = fullText.includes(search);
+
+      let matchesDate = true;
+      if (fromDate || toDate) {
+        const cDate = c.createdDate ? new Date(c.createdDate) : null;
+        if (cDate) {
+          if (fromDate && cDate < new Date(fromDate)) matchesDate = false;
+          if (toDate && cDate > new Date(toDate)) matchesDate = false;
+        }
       }
-      return matchSearch && matchDate;
+
+      return matchesSearch && matchesDate;
     });
 
-    if (filtered.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-3">لا توجد نتائج مطابقة للتاريخ المختار أو البحث</td></tr>';
-      return;
-    }
+    filtered.forEach((c, idx) => {
+      const rowClass = getStatusRowClass(c.status);
+      const cleanPhone = String(c.phone || '').replace(/[^0-9]/g, '');
+      const formattedPhone = cleanPhone.startsWith('0') ? '2' + cleanPhone : cleanPhone;
 
-    filtered.forEach(c => {
-      const colorClass = getRowColorClass(c.status, c.agentCode);
-      const isAd = c.agentCode === "FORM_AD";
-      const isFollow = isFollowupActive(c.hasFollowup);
+      const progDisplay = c.programCategory === "تركيا" ? `تركيا: ${c.programName} (${c.turkeySubName || ''})` : `عمرة: ${c.programName}`;
+      
+      const followupBtn = c.isFollowup 
+        ? `<button onclick="toggleFollowup('${c.id}', 'لا')" class="btn btn-sm btn-warning action-btn-sm" title="إلغاء المتابعة"><i class="fa-solid fa-bell"></i></button>`
+        : `<button onclick="toggleFollowup('${c.id}', 'نعم')" class="btn btn-sm btn-outline-secondary action-btn-sm" title="إضافة للمتابعة"><i class="fa-regular fa-bell"></i></button>`;
 
       tbody.innerHTML += `
-        <tr class="${colorClass}">
-          <td><strong>${c.name}</strong><br><small>${c.address || ''}</small></td>
+        <tr class="${rowClass}">
+          <td class="fw-bold num-dir">${idx + 1}</td>
+          <td><strong>${c.name}</strong></td>
           <td>
-            <i class="fa-brands fa-whatsapp whatsapp-btn me-2" title="واتساب" onclick="openWAModal('${c.name}', '${c.phone}', '${c.program}')"></i>
-            <a href="tel:${c.phone}" class="phone-btn" title="اتصال"><i class="fa-solid fa-phone"></i></a>
-            <br><small>${c.phone}</small>
+            <div class="num-dir fw-bold">${c.phone}</div>
+            <div class="mt-1">
+              <a href="tel:${c.phone}" class="btn btn-sm btn-success action-btn-sm" title="اتصال"><i class="fa-solid fa-phone"></i></a>
+              <a href="https://wa.me/${formattedPhone}" target="_blank" class="btn btn-sm btn-primary action-btn-sm" style="background-color: #25D366; border:none;" title="واتساب"><i class="fa-brands fa-whatsapp"></i></a>
+              <a href="sms:${c.phone}" class="btn btn-sm btn-info text-white action-btn-sm" title="رسالة SMS"><i class="fa-solid fa-comment-sms"></i></a>
+            </div>
           </td>
-          <td><strong>${c.program}</strong><br><small>${c.price || 0} ج.م</small></td>
-          <td>${c.members || 1} أفراد</td>
-          <td>
-            <strong>${c.status}</strong>
-            ${c.postponeDate ? `<br><small class="text-danger fw-bold">مؤجل: ${c.postponeDate}</small>` : ''}
-            ${isFollow ? `<br><span class="badge bg-warning text-dark"><i class="fa-solid fa-bell me-1"></i>متابعة: ${c.followupDate || ''}</span>` : ''}
-          </td>
+          <td>${progDisplay}</td>
+          <td><span class="num-dir">${c.members}</span> أفراد<br><small class="text-success fw-bold num-dir">${c.price || 0} ج.م</small></td>
+          <td><span class="badge bg-dark">${c.status}</span></td>
+          <td><small>${c.fb1 || ''} / ${c.fb2 || ''}</small></td>
           <td><small class="fw-bold">${c.agentName}</small></td>
           <td>
-            ${isAd ? 
-              `<button onclick="claimClient(${c.id})" class="btn btn-sm btn-primary">تولي المتابعة</button>` : 
-              `<button onclick="editClient(${c.id})" class="btn btn-sm btn-outline-dark"><i class="fa-solid fa-pen"></i></button>`
-            }
+            ${followupBtn}
+            <button onclick="editClient('${c.id}')" class="btn btn-sm btn-outline-dark action-btn-sm ms-1" title="تعديل"><i class="fa-solid fa-pen"></i></button>
+            <button onclick="deleteClient('${c.id}')" class="btn btn-sm btn-outline-danger action-btn-sm" title="حذف"><i class="fa-solid fa-trash"></i></button>
           </td>
         </tr>
       `;
     });
   }
 
-  /* 🛠️ عرض صفحة المتابعة بدقة عالية 🛠️ */
   function renderFollowupClients() {
     const tbody = document.getElementById("followupTable");
     const badge = document.getElementById("followupBadge");
+    const search = document.getElementById("searchFollowupInput").value.toLowerCase().trim();
     tbody.innerHTML = "";
 
-    if (!allData.clients) {
-      if (badge) badge.innerText = "0";
+    const list = allData.clients ? allData.clients.filter(c => c.isFollowup === true) : [];
+    if (badge) badge.innerText = list.length;
+
+    const filtered = list.filter(c => {
+      const fullText = `${c.name} ${c.phone} ${c.programName} ${c.status} ${c.fb1} ${c.fb2}`.toLowerCase();
+      return fullText.includes(search);
+    });
+
+    if (filtered.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-3">لا يوجد عملاء في قائمة المتابعة</td></tr>';
       return;
     }
 
-    // تصفية كافة العملاء الذين يحتوي حقل المتابعة لديهم على تفعيل
-    const followupList = allData.clients.filter(c => isFollowupActive(c.hasFollowup));
-
-    if (badge) badge.innerText = followupList.length;
-
-    if (followupList.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-3">لا يوجد عملاء مضافين لصفحة المتابعة حالياً</td></tr>';
-      return;
-    }
-
-    followupList.forEach(c => {
+    filtered.forEach((c, idx) => {
+      const rowClass = getStatusRowClass(c.status);
       tbody.innerHTML += `
-        <tr>
-          <td><strong>${c.name}</strong><br><small>${c.phone}</small></td>
-          <td><span class="badge bg-primary fs-6">${c.followupDay || getDayNameFromDate(c.followupDate) || 'غير محدد'}</span> <small class="text-muted">(${c.followupDate || 'غير محدد'})</small></td>
-          <td>${c.program}</td>
-          <td><span class="badge bg-secondary">${c.status}</span></td>
-          <td><small class="fw-bold">${c.agentName}</small></td>
+        <tr class="${rowClass}">
+          <td class="fw-bold num-dir">${idx + 1}</td>
+          <td><strong>${c.name}</strong></td>
+          <td class="num-dir fw-bold">${c.phone}</td>
+          <td><span class="badge bg-primary">${c.followupDay || ''}</span> <small class="num-dir">(${c.followupDate || ''})</small></td>
+          <td>${c.programName}</td>
+          <td>${c.status}</td>
+          <td><small>${c.fb1 || ''}</small></td>
+          <td>${c.agentName}</td>
           <td>
-            <button onclick="openWAModal('${c.name}', '${c.phone}', '${c.program}')" class="btn btn-sm btn-success" title="واتساب"><i class="fa-brands fa-whatsapp"></i></button>
-            <button onclick="editClient(${c.id})" class="btn btn-sm btn-info text-white" title="تعديل"><i class="fa-solid fa-pen"></i></button>
-            <button onclick="removeFollowup(${c.id})" class="btn btn-sm btn-danger" title="إزالة المتابعة"><i class="fa-solid fa-trash me-1"></i> إزالة</button>
+            <button onclick="editClient('${c.id}')" class="btn btn-sm btn-info text-white action-btn-sm me-1"><i class="fa-solid fa-pen"></i></button>
+            <button onclick="toggleFollowup('${c.id}', 'لا')" class="btn btn-sm btn-danger action-btn-sm" title="إزالة من المتابعة"><i class="fa-solid fa-xmark"></i></button>
           </td>
         </tr>
       `;
     });
   }
 
-  async function removeFollowup(id) {
-    if(!confirm("هل تريد إزالة هذا العميل من صفحة المتابعة؟")) return;
-    await fetch(`${API}?action=removeFollowup&id=${id}`);
+  function clearDateFilter() {
+    document.getElementById("searchFromDate").value = "";
+    document.getElementById("searchToDate").value = "";
+    renderClients();
+  }
+
+  async function toggleFollowup(id, status) {
+    await fetch(`${API}?action=toggleFollowup&id=${id}&status=${encodeURIComponent(status)}`);
     refreshData();
   }
 
-  async function claimClient(id) {
-    if(!confirm("هل تريد استلام هذا العميل لمتابعة حجزه باسمك؟")) return;
-    await fetch(`${API}?action=claimClient&id=${id}&agentCode=${currUser.code}&agentName=${encodeURIComponent(currUser.name)}`);
+  async function deleteClient(id) {
+    if (!confirm("هل أنت تأكد من إزالة هذا الصف بالكامل من النظام؟")) return;
+    await fetch(`${API}?action=deleteClient&id=${id}`);
     refreshData();
   }
 
-  function checkReminders() {
-    const remDiv = document.getElementById("remindersArea");
-    remDiv.innerHTML = "";
-    const currentMonth = new Date().toISOString().slice(0, 7);
-    const dueClients = allData.clients ? allData.clients.filter(c => c.status === "هياجل لشهر تاني" && c.postponeDate === currentMonth) : [];
+  function onCategoryChange() {
+    const cat = document.getElementById("cProgramCategory").value;
+    const sel = document.getElementById("cProgramName");
+    sel.innerHTML = "";
     
-    if (dueClients.length > 0) {
-      remDiv.innerHTML = `
-        <div class="alert alert-warning d-flex align-items-center mb-0" role="alert">
-          <i class="fa-solid fa-bell me-2 fs-5 text-danger"></i>
-          <div><strong>تذكير هام:</strong> لديك (${dueClients.length}) عميل محدد حجزهم في هذا الشهر (${currentMonth})! يرجى التواصل معهم.</div>
-        </div>
-      `;
+    if (cat === "تركيا") {
+      document.getElementById("turkeySubDiv").classList.remove("hidden");
+      (allData.turkeyPrograms || []).forEach(p => sel.innerHTML += `<option value="${p}">${p}</option>`);
+    } else {
+      document.getElementById("turkeySubDiv").classList.add("hidden");
+      (allData.omraPrograms || []).forEach(p => sel.innerHTML += `<option value="${p}">${p}</option>`);
     }
   }
 
-  function openClientModal() {
-    document.getElementById("cId").value = "0";
-    document.getElementById("modalTitle").innerText = "إضافة معتمر جديد";
-    document.querySelectorAll("#clientModal input").forEach(i => {
-      if(i.type === 'checkbox') i.checked = false;
-      else i.value = "";
-    });
-    document.getElementById("cMembers").value = 1;
-    document.getElementById("cStatus").value = "حجز";
-    togglePostpone();
-    toggleFollowupOptions();
-    bsClientModal.show();
+  function onStatusChange() {
+    const st = document.getElementById("cStatus").value;
+    document.getElementById("customStatusDiv").classList.toggle("hidden", st !== "OTHER");
   }
 
   function editClient(id) {
     const c = allData.clients.find(x => String(x.id) === String(id));
     if (!c) return;
+
     document.getElementById("cId").value = c.id;
-    document.getElementById("modalTitle").innerText = "تعديل بيانات العميل";
-    document.getElementById("cName").value = c.name;
-    document.getElementById("cPhone").value = c.phone;
-    document.getElementById("cAddress").value = c.address;
+    document.getElementById("cName").value = c.name || "";
+    document.getElementById("cPhone").value = c.phone || "";
+    document.getElementById("cAddress").value = c.address || "";
     document.getElementById("cMembers").value = c.members || 1;
-    document.getElementById("cProgram").value = c.program;
-    document.getElementById("cPrice").value = c.price;
-    document.getElementById("cStatus").value = c.status;
-    document.getElementById("cPostponeDate").value = c.postponeDate;
-    
-    const hasFol = isFollowupActive(c.hasFollowup);
-    document.getElementById("cHasFollowup").checked = hasFol;
+    document.getElementById("cProgramCategory").value = c.programCategory || "عمرة";
+    onCategoryChange();
+    document.getElementById("cProgramName").value = c.programName || "";
+    document.getElementById("cTurkeySubName").value = c.turkeySubName || "";
+    document.getElementById("cPrice").value = c.price || "";
+
+    const standardStatuses = ["حجز", "بيفكر", "هياجل لشهر تاني", "متابعه واتساب", "مش هيحجز", "قفل السكه في وشي", "مش بيرد"];
+    if (standardStatuses.includes(c.status)) {
+      document.getElementById("cStatus").value = c.status;
+      document.getElementById("cCustomStatus").value = "";
+    } else {
+      document.getElementById("cStatus").value = "OTHER";
+      document.getElementById("cCustomStatus").value = c.status || "";
+    }
+    onStatusChange();
+
+    document.getElementById("cIsFollowup").checked = (c.isFollowup === true);
     document.getElementById("cFollowupDate").value = c.followupDate || "";
-    document.getElementById("cFollowupDay").value = c.followupDay || getDayNameFromDate(c.followupDate);
+    document.getElementById("cFollowupDay").value = c.followupDay || "";
+    document.getElementById("cFb1").value = c.fb1 || "";
+    document.getElementById("cFb2").value = c.fb2 || "";
     
-    document.getElementById("cFb1").value = c.fb1;
-    document.getElementById("cFb2").value = c.fb2;
-    togglePostpone();
-    toggleFollowupOptions();
+    toggleFollowupFields();
     bsClientModal.show();
   }
 
-  function toggleFollowupOptions() {
-    const isChecked = document.getElementById("cHasFollowup").checked;
-    if(isChecked) {
-      document.getElementById("followupFields").classList.remove("hidden");
-    } else {
-      document.getElementById("followupFields").classList.add("hidden");
-    }
-  }
-
-  function updateFollowupDayName() {
-    const dt = document.getElementById("cFollowupDate").value;
-    document.getElementById("cFollowupDay").value = getDayNameFromDate(dt);
-  }
-
-  /* 🛠️ حفظ البيانات مع التأكد من نقل حالة المتابعة بشكل صحيح 🛠️ */
   async function saveClient() {
     const id = document.getElementById("cId").value;
-    const name = document.getElementById("cName").value;
-    const phone = document.getElementById("cPhone").value;
-    if (!name || !phone) return alert("الاسم ورقم الهاتف مطلوبين!");
+    const phone = document.getElementById("cPhone").value.trim();
+    const name = document.getElementById("cName").value.trim();
 
-    const todayDate = new Date().toISOString().split('T')[0];
-    const hasFollowupVal = document.getElementById("cHasFollowup").checked ? "true" : "false";
+    if (!name || !phone) {
+      alert("يرجى إدخال اسم العميل ورقم الموبايل!");
+      return;
+    }
+
+    if (id === "0" || !id) {
+      const cleanPhone = phone.replace(/[^0-9]/g, '');
+      const isDuplicate = (allData.clients || []).some(c => {
+        const existingPhone = String(c.phone || '').replace(/[^0-9]/g, '');
+        return existingPhone === cleanPhone && existingPhone !== "";
+      });
+
+      if (isDuplicate) {
+        alert(`⚠️ عذراً! رقم الهاتف (${phone}) مسجل بالفعل لعميل آخر في النظام، ولا يمكن تكراره.`);
+        return;
+      }
+    }
+
+    const statusSelect = document.getElementById("cStatus").value;
+    const finalStatus = statusSelect === "OTHER" ? document.getElementById("cCustomStatus").value : statusSelect;
 
     const query = new URLSearchParams({
       action: "saveClient",
       id: id,
-      agentCode: currUser.code,
-      agentName: currUser.name,
+      agentCode: currUser.code || '',
+      agentName: currUser.name || '',
       name: name,
       phone: phone,
       address: document.getElementById("cAddress").value,
-      members: document.getElementById("cMembers").value || 1,
-      program: document.getElementById("cProgram").value,
+      members: document.getElementById("cMembers").value,
+      programCategory: document.getElementById("cProgramCategory").value,
+      programName: document.getElementById("cProgramName").value,
+      turkeySubName: document.getElementById("cTurkeySubName").value,
       price: document.getElementById("cPrice").value,
-      status: document.getElementById("cStatus").value,
-      postponeDate: document.getElementById("cPostponeDate").value,
-      hasFollowup: hasFollowupVal,
+      status: finalStatus,
+      isFollowup: document.getElementById("cIsFollowup").checked ? "نعم" : "لا",
       followupDate: document.getElementById("cFollowupDate").value,
       followupDay: document.getElementById("cFollowupDay").value,
-      createdDate: todayDate,
+      createdDate: new Date().toISOString().split('T')[0],
       fb1: document.getElementById("cFb1").value,
       fb2: document.getElementById("cFb2").value
     });
@@ -588,98 +597,26 @@
     refreshData();
   }
 
-  function togglePostpone() {
-    const st = document.getElementById("cStatus").value;
-    if (st === "هياجل لشهر تاني") {
-      document.getElementById("postponeDiv").classList.remove("hidden");
-    } else {
-      document.getElementById("postponeDiv").classList.add("hidden");
-    }
+  async function addProgram(type) {
+    const inputId = type === 'تركيا' ? 'npTurkeyName' : 'npOmraName';
+    const name = document.getElementById(inputId).value;
+    if(!name) return;
+    await fetch(`${API}?action=addProgram&programName=${encodeURIComponent(name)}&type=${encodeURIComponent(type)}`);
+    document.getElementById(inputId).value = "";
+    refreshData();
   }
 
-  function openWAModal(name, phone, program) {
-    targetClientWA = { name, phone, program };
-    document.getElementById("waClientName").innerText = name;
-    bsWaModal.show();
+  function toggleFollowupFields() {
+    const isChecked = document.getElementById("cIsFollowup").checked;
+    document.getElementById("followupFields").classList.toggle("hidden", !isChecked);
   }
 
-  function sendWA(type) {
-    let msg = "";
-    let cleanPhone = targetClientWA.phone.replace(/\D/g, '');
-    if(!cleanPhone.startsWith("20")) cleanPhone = "20" + cleanPhone;
-
-    if (type === "welcome") {
-      msg = `أهلاً بك أ/ ${targetClientWA.name} معنا. يسعدنا استفسارك عن ${targetClientWA.program}. كيف يمكننا مساعدتك اليوم؟`;
-    } else if (type === "offers") {
-      msg = `مرحباً أ/ ${targetClientWA.name}، حابين نذكرك بأحدث عروضنا لـ ${targetClientWA.program} وأماكن حجز مميزة المتاحة الآن!`;
-    } else if (type === "followup") {
-      msg = `أهلاً بك أ/ ${targetClientWA.name}، بنتابع مع حضرتك بخصوص رحلة ${targetClientWA.program}. هل تحب نأكد الحجز مع حضرتك؟`;
+  function updateFollowupDayName() {
+    const dt = document.getElementById("cFollowupDate").value;
+    if(dt) {
+      const d = new Date(dt);
+      document.getElementById("cFollowupDay").value = daysArabic[d.getDay()];
     }
-
-    window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`, '_blank');
-    bsWaModal.hide();
-  }
-
-  function renderPrograms() {
-    const sel = document.getElementById("cProgram");
-    sel.innerHTML = "";
-    if (allData.programs) {
-      allData.programs.forEach(p => {
-        sel.innerHTML += `<option value="${p}">${p}</option>`;
-      });
-    }
-  }
-
-  function renderStats() {
-    let sales = 0, totalMembers = 0, totalComm = 0;
-    const agentMap = {};
-    const COMM_PER_PERSON = 500;
-
-    if (allData.clients) {
-      allData.clients.forEach(c => {
-        if (c.status === "حجز") {
-          const pr = parseFloat(c.price) || 0;
-          const mem = parseInt(c.members) || 1;
-          const commVal = mem * COMM_PER_PERSON;
-
-          sales += pr;
-          totalMembers += mem;
-          totalComm += commVal;
-
-          if (!agentMap[c.agentName]) {
-            agentMap[c.agentName] = { members: 0, sales: 0, comm: 0 };
-          }
-          agentMap[c.agentName].members += mem;
-          agentMap[c.agentName].sales += pr;
-          agentMap[c.agentName].comm += commVal;
-        }
-      });
-    }
-
-    document.getElementById("statTotalSales").innerText = sales.toLocaleString() + " ج.م";
-    document.getElementById("statBookedCount").innerText = totalMembers + " أفراد";
-    document.getElementById("statTotalComm").innerText = totalComm.toLocaleString() + " ج.م";
-
-    const tbody = document.getElementById("agentStatsTable");
-    tbody.innerHTML = "";
-    
-    const agentNames = Object.keys(agentMap);
-    if (agentNames.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-3">لا توجد حجوزات مؤكدة حتى الآن</td></tr>';
-      return;
-    }
-
-    agentNames.forEach(agent => {
-      const data = agentMap[agent];
-      tbody.innerHTML += `
-        <tr>
-          <td><strong>${agent}</strong></td>
-          <td><span class="badge bg-info text-dark fs-6">${data.members} أفراد</span></td>
-          <td class="fw-bold text-success">${data.sales.toLocaleString()} ج.م</td>
-          <td class="fw-bold text-primary">${data.comm.toLocaleString()} ج.م</td>
-        </tr>
-      `;
-    });
   }
 
   function switchTab(tab) {
@@ -692,27 +629,15 @@
     document.getElementById(`sec-${tab}`).classList.remove("hidden");
   }
 
-  async function addUser() {
-    const name = document.getElementById("nuName").value, username = document.getElementById("nuUser").value;
-    const pass = document.getElementById("nuPass").value, code = document.getElementById("nuCode").value;
-    const role = document.getElementById("nuRole").value;
-    if (!name || !username || !pass || !code) return alert("املاً كافة بيانات الموظف");
-
-    await fetch(`${API}?action=addUser&name=${encodeURIComponent(name)}&username=${encodeURIComponent(username)}&password=${encodeURIComponent(pass)}&code=${encodeURIComponent(code)}&role=${role}`);
-    alert("تمت إضافة الموظف بنجاح!");
-    refreshData();
+  function openClientModal() {
+    document.getElementById("cId").value = "0";
+    document.querySelectorAll("#clientModal input").forEach(i => i.type === 'checkbox' ? i.checked = false : i.value = "");
+    document.getElementById("cProgramCategory").value = "عمرة";
+    onCategoryChange();
+    onStatusChange();
+    toggleFollowupFields();
+    bsClientModal.show();
   }
-
-  async function addProgram() {
-    const p = document.getElementById("npName").value;
-    if (!p) return;
-    await fetch(`${API}?action=addProgram&programName=${encodeURIComponent(p)}`);
-    alert("تمت إضافة البرنامج بنجاح!");
-    document.getElementById("npName").value = "";
-    refreshData();
-  }
-
-  function logout() { location.reload(); }
 </script>
 </body>
 </html>
