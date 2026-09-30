@@ -315,19 +315,55 @@
     }
   });
 
-  function initAppView() {
-    document.getElementById("loginBox").classList.add("hidden");
-    document.getElementById("app").classList.remove("hidden");
-    document.getElementById("floatingAddBtn").classList.remove("hidden");
-    document.getElementById("userNameTxt").innerText = currUser.name;
-    document.getElementById("userRoleTxt").innerText = currUser.role === "admin" ? "مدير النظام" : `الموظف: ${currUser.name}`;
-    
-    if (currUser.role === "admin") {
-      document.querySelectorAll(".admin-only").forEach(el => el.classList.remove("hidden"));
-    }
-    refreshData();
+ function initAppView() {
+  document.getElementById("loginBox").classList.add("hidden");
+  document.getElementById("app").classList.remove("hidden");
+  document.getElementById("floatingAddBtn").classList.remove("hidden");
+  
+  // تأمين قراءة بيانات المستخدم
+  const name = currUser.name || currUser.username || "مستخدم";
+  const role = currUser.role || "mowazaf";
+  
+  document.getElementById("userNameTxt").innerText = name;
+  document.getElementById("userRoleTxt").innerText = (role === "admin") ? "مدير النظام" : `الموظف: ${name}`;
+  
+  if (role === "admin") {
+    document.querySelectorAll(".admin-only").forEach(el => el.classList.remove("hidden"));
   }
+  
+  refreshData();
+}
 
+async function refreshData() {
+  try {
+    const role = currUser.role || "mowazaf";
+    const code = currUser.code || "";
+    const username = currUser.username || currUser.name || "";
+
+    // إرسال البيانات بشكل صحيح للسيرفر
+    const url = `${API}?action=getData&role=${encodeURIComponent(role)}&code=${encodeURIComponent(code)}&username=${encodeURIComponent(username)}`;
+    
+    const res = await fetch(url);
+    const data = await res.json();
+    
+    // التاكد من وصول البيانات بدون أخطاء
+    if (data) {
+      allData = {
+        clients: Array.isArray(data.clients) ? data.clients : [],
+        omraPrograms: Array.isArray(data.omraPrograms) ? data.omraPrograms : [],
+        turkeyPrograms: Array.isArray(data.turkeyPrograms) ? data.turkeyPrograms : []
+      };
+    } else {
+      allData = { clients: [], omraPrograms: [], turkeyPrograms: [] };
+    }
+
+    renderClients();
+    renderFollowupClients();
+  } catch (err) {
+    console.error("خطأ في جلب البيانات:", err);
+    document.getElementById("clientsTable").innerHTML = `<tr><td colspan="9" class="text-center text-danger py-3">حدث خطأ أثناء تحميل البيانات: ${err.message}</td></tr>`;
+  }
+}
   async function login() {
     const u = document.getElementById("userInput").value, p = document.getElementById("passInput").value;
     const res = await fetch(`${API}?action=login&username=${encodeURIComponent(u)}&password=${encodeURIComponent(p)}`);
