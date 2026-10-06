@@ -4,6 +4,14 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>نظام إدارة المعتمرين والرحلات CRM</title>
+  <meta name="theme-color" content="#0d6efd">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="CRM">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
@@ -24,6 +32,11 @@
     .btn-floating-add:hover { transform: scale(1.1); color: white; }
     .action-btn-sm { width: 30px; height: 30px; padding: 0; display: inline-flex; align-items: center; justify-content: center; border-radius: 50% !important; margin: 0 1px; }
     .stat-card { border-right: 4px solid #0d6efd; }
+    .date-chip { font-size: 0.85rem; padding: 0.5em 0.8em; }
+    .date-chip i { cursor: pointer; opacity: 0.85; }
+    .date-chip i:hover { opacity: 1; }
+    .pulse { animation: crmPulse 1.4s infinite; }
+    @keyframes crmPulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
   </style>
 </head>
 <body class="p-2 p-md-4">
@@ -36,6 +49,7 @@
     <input type="text" id="userInput" class="form-control mb-2" placeholder="اسم المستخدم">
     <input type="password" id="passInput" class="form-control mb-3" placeholder="كلمة المرور">
     <button onclick="login()" class="btn btn-primary w-100">دخول</button>
+    <button onclick="installApp()" class="btn btn-outline-primary w-100 mt-2 install-btn hidden"><i class="fa-solid fa-download me-1"></i> تثبيت التطبيق على الشاشة</button>
     <div id="loginErr" class="alert alert-danger mt-3 py-1 text-center hidden"></div>
   </div>
 
@@ -48,12 +62,19 @@
         <small id="userRoleTxt" class="text-muted"></small>
       </div>
       <div class="d-flex align-items-center gap-2">
+        <button onclick="installApp()" class="btn btn-outline-primary btn-sm install-btn hidden"><i class="fa-solid fa-download"></i> تثبيت</button>
         <button id="notifBellBtn" onclick="checkTodayNotifications(true)" class="btn btn-outline-warning position-relative btn-sm">
           <i class="fa-solid fa-bell"></i> التنبيهات
           <span id="notifBadge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger hidden">0</span>
         </button>
         <button onclick="logout()" class="btn btn-outline-danger btn-sm"><i class="fa-solid fa-right-from-bracket me-1"></i> خروج</button>
       </div>
+    </div>
+
+    <!-- شريط تنبيه المتابعة الظاهر دائماً -->
+    <div id="todayBanner" class="alert alert-warning d-flex justify-content-between align-items-center shadow-sm hidden" role="alert">
+      <div><i class="fa-solid fa-bell me-2 pulse"></i><strong id="todayBannerText"></strong></div>
+      <button class="btn btn-sm btn-warning text-nowrap" onclick="checkTodayNotifications(true)">عرض المتابعات</button>
     </div>
 
     <!-- تبويبات التصفح -->
@@ -68,13 +89,18 @@
     <!-- قسم السجلات -->
     <div id="sec-clients" class="card p-3 shadow-sm">
       <div class="row g-2 mb-3 align-items-center">
-        <div class="col-md-4">
+        <div class="col-md-6">
           <input type="text" id="searchInput" class="form-control" placeholder="ابحث باسم المعتمر، الهاتف، البرنامج..." onkeyup="renderClients()">
         </div>
-        <div class="col-md-3"><input type="date" id="searchFromDate" class="form-control" onchange="renderClients()" title="من تاريخ"></div>
-        <div class="col-md-3"><input type="date" id="searchToDate" class="form-control" onchange="renderClients()" title="إلى تاريخ"></div>
+        <div class="col-md-4">
+          <div class="input-group">
+            <input type="date" id="searchDate" class="form-control" onchange="addSearchDate(this.value)" title="اختر تاريخ التسجيل — وتقدر تختار أكتر من تاريخ">
+            <button type="button" class="btn btn-outline-primary text-nowrap" onclick="addSearchDate(localDateStr())">اليوم</button>
+          </div>
+        </div>
         <div class="col-md-2"><button onclick="clearDateFilter()" class="btn btn-outline-secondary w-100">إلغاء التصفية</button></div>
       </div>
+      <div id="dateChips" class="d-flex flex-wrap align-items-center gap-2 mb-3 hidden"></div>
 
       <div class="table-responsive">
         <table class="table align-middle" style="font-size: 0.88rem;">
@@ -215,16 +241,21 @@
 <!-- زر الإضافة العائم -->
 <button id="floatingAddBtn" onclick="openClientModal()" class="btn-floating-add hidden" title="إضافة عميل جديد"><i class="fa-solid fa-plus"></i></button>
 
-<!-- مودال التنبيهات الإجباري للمتابعة -->
-<div class="modal fade" id="notifModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1">
-  <div class="modal-dialog modal-dialog-centered">
+<!-- مودال تنبيهات المتابعة -->
+<div class="modal fade" id="notifModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
     <div class="modal-content border-warning border-3">
       <div class="modal-header bg-warning text-dark">
-        <h5 class="modal-title fw-bold"><i class="fa-solid fa-triangle-exclamation me-2"></i>تنبيه متابعة هام للبرامج!</h5>
+        <h5 class="modal-title fw-bold"><i class="fa-solid fa-triangle-exclamation me-2"></i>عندك متابعات مطلوبة!</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
       </div>
       <div class="modal-body">
-        <p class="mb-2">لديك عملاء مستحقين للمتابعة اليوم أو الشهور المؤجلة. يجب إجراء وتأكيد المتابعة لتحديث حالتك:</p>
+        <p class="mb-2">العملاء دول مستحقين للمتابعة النهارده أو متأخرين. بعد ما تكلمهم اضغط «تمت المتابعة» وحدّث حالتهم:</p>
         <div id="notifClientsList" class="list-group"></div>
+      </div>
+      <div class="modal-footer justify-content-between">
+        <button id="notifPermBtn" type="button" class="btn btn-sm btn-outline-dark hidden" onclick="enableSystemNotifs()"><i class="fa-solid fa-mobile-screen-button me-1"></i> تفعيل إشعارات الموبايل</button>
+        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">تذكيرني لاحقاً</button>
       </div>
     </div>
   </div>
@@ -240,6 +271,7 @@
       </div>
       <div class="modal-body">
         <input type="hidden" id="cId" value="0">
+        <input type="hidden" id="cCreatedDate" value="">
         <div class="row g-2">
           <div class="col-md-6"><label class="form-label">اسم العميل</label><input type="text" id="cName" class="form-control" required></div>
           <div class="col-md-6"><label class="form-label">رقم الموبايل</label><input type="tel" id="cPhone" class="form-control num-dir" placeholder="01xxxxxxxxx" required></div>
@@ -349,7 +381,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-  const API = "https://script.google.com/macros/s/AKfycbwzXSi-drXY7UUC3VCDSDrkYFQbeQXXX3ti8eA-rjMJ0Y15xz4OnhzQZFD3VOrobCST/exec";
+  const API = "https://script.google.com/macros/s/AKfycbzofhbtr4kigwh37-emNyTRk9Ck1vuG5GLiyXrvMQHo-jRJtsQvI6ACEHHuzR_wvGTJ/exec";
 
   let currUser = null;
   let allData = { clients: [], omraPrograms: [], turkeyPrograms: [] };
@@ -360,6 +392,10 @@
   document.addEventListener("DOMContentLoaded", () => {
     bsClientModal = new bootstrap.Modal(document.getElementById('clientModal'));
     bsNotifModal = new bootstrap.Modal(document.getElementById('notifModal'));
+
+    // تسجيل Service Worker + تجهيز زر التثبيت
+    if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+    if (isIOS && !isStandalone) toggleInstallBtns(true);
     
     const savedUser = localStorage.getItem("crm_user");
     if (savedUser) {
@@ -467,43 +503,166 @@
     }
   }
 
-  function checkTodayNotifications(manualClick) {
-    const todayStr = new Date().toISOString().split('T')[0];
-    const currentMonthStr = monthArabic[new Date().getMonth()];
+  // ===== أدوات مساعدة =====
+  let notifShownThisSession = false;
+  let searchDates = [];
+  let deferredInstall = null;
+  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
 
-    const dueClients = allData.clients.filter(c => {
-      if (c.isFollowup && c.followupDate && c.followupDate <= todayStr) return true;
-      if (c.status === "هياجل لشهر تاني" && c.postponeDate === currentMonthStr) return true;
-      return false;
+  // تاريخ اليوم بتوقيت جهازك (مش UTC) علشان التنبيهات تظبط بعد منتصف الليل
+  function localDateStr(d = new Date()) {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
+
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+  }
+
+  // توحيد رقم الموبايل: يصلّح الصفر الناقص (جوجل شيت بيشيله) والأرقام العربية والمسافات
+  function normalizePhone(raw) {
+    let s = String(raw == null ? '' : raw)
+      .replace(/[\u0660-\u0669]/g, d => d.charCodeAt(0) - 0x0660)
+      .replace(/[\u06F0-\u06F9]/g, d => d.charCodeAt(0) - 0x06F0);
+    let digits = s.replace(/\D/g, '');
+    if (digits.startsWith('00')) digits = digits.slice(2);
+    if (/^0201[0125]\d{8}$/.test(digits)) digits = digits.slice(1);
+    let intl = digits, local = digits;
+    if (/^0?1[0125]\d{8}$/.test(digits)) {
+      const nat = digits.replace(/^0/, '');
+      intl = '20' + nat; local = '0' + nat;
+    } else if (/^201[0125]\d{8}$/.test(digits)) {
+      local = '0' + digits.slice(2);
+    } else if (/^0\d{8,10}$/.test(digits)) {
+      intl = '20' + digits.slice(1);
+    } else if (digits.length >= 10) {
+      local = '+' + digits;
+    }
+    return { intl, local, valid: digits.length >= 8 };
+  }
+
+  function contactButtons(phone) {
+    const p = normalizePhone(phone);
+    if (!p.valid) return '<span class="text-muted small">رقم غير صالح</span>';
+    return `<a href="tel:+${p.intl}" class="btn btn-sm btn-success action-btn-sm" title="اتصال"><i class="fa-solid fa-phone"></i></a>` +
+      `<a href="https://wa.me/${p.intl}" target="_blank" rel="noopener" class="btn btn-sm action-btn-sm text-white" style="background-color:#25D366;border:none;" title="واتساب"><i class="fa-brands fa-whatsapp"></i></a>`;
+  }
+
+  // ===== تثبيت التطبيق =====
+  window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredInstall = e; toggleInstallBtns(true); });
+  window.addEventListener('appinstalled', () => toggleInstallBtns(false));
+  function toggleInstallBtns(show) {
+    document.querySelectorAll('.install-btn').forEach(b => b.classList.toggle('hidden', !show));
+  }
+  async function installApp() {
+    if (deferredInstall) {
+      deferredInstall.prompt();
+      await deferredInstall.userChoice;
+      deferredInstall = null;
+      toggleInstallBtns(false);
+    } else if (isIOS) {
+      alert('علشان تثبّت التطبيق على الآيفون:\n1) اضغط زر المشاركة (Share) في سفاري\n2) اختار «إضافة إلى الشاشة الرئيسية»');
+    }
+  }
+
+  // ===== المتابعات والتنبيهات =====
+  function getDueClients() {
+    const today = localDateStr();
+    const monthName = monthArabic[new Date().getMonth()];
+    const list = [];
+    allData.clients.forEach(c => {
+      if (c.isFollowup && c.followupDate && c.followupDate <= today) {
+        const days = Math.round((new Date(today + 'T00:00:00') - new Date(c.followupDate + 'T00:00:00')) / 86400000);
+        list.push({ c, kind: days === 0 ? 'today' : 'overdue', days });
+      } else if (c.status === "هياجل لشهر تاني" && c.postponeDate === monthName) {
+        list.push({ c, kind: 'month', days: 0 });
+      }
     });
+    const order = { overdue: 0, today: 1, month: 2 };
+    list.sort((x, y) => order[x.kind] - order[y.kind]);
+    return list;
+  }
 
+  function dueLabel(d) {
+    if (d.kind === 'today') return '<span class="badge bg-danger">متابعة اليوم</span>';
+    if (d.kind === 'overdue') return `<span class="badge bg-dark">متأخرة ${d.days} يوم</span>`;
+    return '<span class="badge bg-secondary">مؤجل لهذا الشهر</span>';
+  }
+
+  function checkTodayNotifications(manualClick) {
+    const due = getDueClients();
     const badge = document.getElementById("notifBadge");
-    if (dueClients.length > 0) {
-      if (badge) { badge.innerText = dueClients.length; badge.classList.remove("hidden"); }
-      
-      const listDiv = document.getElementById("notifClientsList");
-      listDiv.innerHTML = "";
-      dueClients.forEach(c => {
-        listDiv.innerHTML += `
-          <div class="list-group-item d-flex justify-content-between align-items-center">
-            <div>
-              <strong>${c.name}</strong> (${c.phone})<br>
-              <small class="text-muted">البرنامج: ${c.programName || ''} | الموعد: ${c.followupDate || c.postponeDate || ''}</small>
-            </div>
-            <button onclick="handleNotifAction('${c.id}')" class="btn btn-sm btn-primary">تمت المتابعة وتحديث الحالة</button>
-          </div>
-        `;
-      });
-      bsNotifModal.show();
-    } else {
+    const banner = document.getElementById("todayBanner");
+
+    if (due.length === 0) {
       if (badge) badge.classList.add("hidden");
-      if (manualClick) alert("لا توجد متابعات عاجلة مطلوبة منك اليوم!");
+      if (banner) banner.classList.add("hidden");
+      if (manualClick) alert("لا توجد متابعات مطلوبة منك اليوم!");
+      return;
+    }
+
+    if (badge) { badge.innerText = due.length; badge.classList.remove("hidden"); }
+
+    const todayN = due.filter(d => d.kind === 'today').length;
+    const overN = due.filter(d => d.kind === 'overdue').length;
+    const monthN = due.filter(d => d.kind === 'month').length;
+    const parts = [];
+    if (todayN) parts.push(`${todayN} متابعة النهارده`);
+    if (overN) parts.push(`${overN} متأخرة`);
+    if (monthN) parts.push(`${monthN} مؤجل لهذا الشهر`);
+    if (banner) { document.getElementById("todayBannerText").innerText = "عندك: " + parts.join(" • "); banner.classList.remove("hidden"); }
+
+    const listDiv = document.getElementById("notifClientsList");
+    listDiv.innerHTML = due.map(d => {
+      const c = d.c;
+      const p = normalizePhone(c.phone);
+      return `
+        <div class="list-group-item">
+          <div class="d-flex justify-content-between align-items-start gap-2">
+            <div>
+              <strong>${esc(c.name)}</strong> ${dueLabel(d)}<br>
+              <small class="num-dir text-muted">${esc(p.local)}</small><br>
+              <small class="text-muted">البرنامج: ${esc(c.programName)} | الموعد: ${esc(c.followupDay ? c.followupDay + ' ' : '')}${esc(c.followupDate || c.postponeDate)}</small>
+              ${(c.fb2 || c.fb1) ? `<br><small>📝 ${esc(c.fb2 || c.fb1)}</small>` : ''}
+            </div>
+            <div class="text-nowrap">${contactButtons(c.phone)}</div>
+          </div>
+          <button onclick="handleNotifAction('${esc(c.id)}')" class="btn btn-sm btn-primary w-100 mt-2">تمت المتابعة وتحديث الحالة</button>
+        </div>`;
+    }).join("");
+
+    const permBtn = document.getElementById("notifPermBtn");
+    if (permBtn) permBtn.classList.toggle("hidden", !('Notification' in window) || Notification.permission !== 'default');
+
+    // النافذة تظهر تلقائياً مرة واحدة عند الفتح، وبعدها بالضغط على الجرس أو الشريط
+    if (manualClick || !notifShownThisSession) {
+      notifShownThisSession = true;
+      bsNotifModal.show();
+      systemNotify(due);
     }
   }
 
   function handleNotifAction(id) {
+    const el = document.getElementById('notifModal');
+    el.addEventListener('hidden.bs.modal', () => editClient(id), { once: true });
     bsNotifModal.hide();
-    editClient(id);
+  }
+
+  // إشعار على نظام الموبايل/الكمبيوتر (بيشتغل لما التطبيق يتفتح)
+  function systemNotify(due) {
+    try {
+      if (!('Notification' in window) || Notification.permission !== 'granted') return;
+      const opts = { body: `${due.length} عميل محتاج متابعة`, icon: 'icons/icon-192.png', badge: 'icons/icon-192.png', tag: 'crm-followup', lang: 'ar', dir: 'rtl' };
+      if (navigator.serviceWorker) navigator.serviceWorker.ready.then(reg => reg.showNotification('متابعات CRM', opts));
+      else new Notification('متابعات CRM', opts);
+    } catch (e) { /* تجاهل */ }
+  }
+
+  async function enableSystemNotifs() {
+    if (!('Notification' in window)) return alert('المتصفح ده مش بيدعم الإشعارات');
+    const perm = await Notification.requestPermission();
+    document.getElementById("notifPermBtn")?.classList.toggle("hidden", perm !== 'default');
+    if (perm === 'granted') systemNotify(getDueClients());
   }
 
   function getStatusRowClass(status) {
@@ -517,20 +676,45 @@
     return "";
   }
 
+  // ===== فلتر التاريخ (خانة واحدة + أكتر من تاريخ) =====
+  function addSearchDate(v) {
+    if (!v) return;
+    const y = parseInt(v.slice(0, 4), 10);
+    if (!(y >= 2000 && y <= 2100)) return;   // تجاهل السنة الناقصة أثناء الكتابة
+    if (!searchDates.includes(v)) { searchDates.push(v); searchDates.sort(); }
+    const inp = document.getElementById("searchDate");
+    if (inp) inp.value = "";
+    renderDateChips();
+    renderClients();
+  }
+
+  function removeSearchDate(v) {
+    searchDates = searchDates.filter(d => d !== v);
+    renderDateChips();
+    renderClients();
+  }
+
+  function renderDateChips() {
+    const box = document.getElementById("dateChips");
+    if (!box) return;
+    if (searchDates.length === 0) { box.classList.add("hidden"); box.innerHTML = ""; return; }
+    box.classList.remove("hidden");
+    box.innerHTML = '<small class="text-muted">السجلات المكتوبة في:</small>' + searchDates.map(d =>
+      `<span class="badge rounded-pill bg-primary date-chip">${daysArabic[new Date(d + 'T00:00:00').getDay()]} <span class="num-dir">${d}</span> <i class="fa-solid fa-xmark ms-1" onclick="removeSearchDate('${d}')"></i></span>`
+    ).join("") + '<small class="text-muted">(اختار تاريخ تاني لو عايز تضيف يوم)</small>';
+  }
+
   function renderClients() {
     const tbody = document.getElementById("clientsTable");
     if (!tbody) return;
     const search = document.getElementById("searchInput")?.value.toLowerCase().trim() || "";
-    const fromDate = document.getElementById("searchFromDate")?.value || "";
-    const toDate = document.getElementById("searchToDate")?.value || "";
+    const dueMap = new Map(getDueClients().map(d => [String(d.c.id), d]));
 
-    tbody.innerHTML = "";
     const filtered = allData.clients.filter(c => {
-      const fullText = `${c.name || ''} ${c.phone || ''} ${c.programName || ''} ${c.status || ''} ${c.agentName || ''}`.toLowerCase();
-      let matches = fullText.includes(search);
-      if (fromDate && c.createdDate && c.createdDate < fromDate) matches = false;
-      if (toDate && c.createdDate && c.createdDate > toDate) matches = false;
-      return matches;
+      const fullText = `${c.name || ''} ${c.phone || ''} ${normalizePhone(c.phone).local} ${c.programName || ''} ${c.status || ''} ${c.agentName || ''}`.toLowerCase();
+      if (!fullText.includes(search)) return false;
+      if (searchDates.length > 0 && !searchDates.includes(c.createdDate)) return false;
+      return true;
     });
 
     if (filtered.length === 0) {
@@ -538,65 +722,73 @@
       return;
     }
 
-    filtered.forEach((c, idx) => {
-      const cleanPhone = String(c.phone || '').replace(/[^0-9]/g, '');
-      const formattedPhone = cleanPhone.startsWith('0') ? '2' + cleanPhone : cleanPhone;
-      const progDisplay = c.programCategory === "تركيا" ? `تركيا: ${c.programName || ''} (${c.turkeySubName || ''})` : `عمرة: ${c.programName || ''}`;
-
-      tbody.innerHTML += `
+    tbody.innerHTML = filtered.map((c, idx) => {
+      const p = normalizePhone(c.phone);
+      const progDisplay = c.programCategory === "تركيا" ? `تركيا: ${esc(c.programName)} (${esc(c.turkeySubName)})` : `عمرة: ${esc(c.programName)}`;
+      const due = dueMap.get(String(c.id));
+      return `
         <tr class="${getStatusRowClass(c.status)}">
           <td class="fw-bold num-dir">${idx + 1}</td>
-          <td><strong>${c.name}</strong></td>
+          <td><strong>${esc(c.name)}</strong><br><small class="text-muted num-dir">${esc(c.createdDate)}</small></td>
           <td>
-            <div class="num-dir fw-bold">${c.phone}</div>
-            <div>
-              <a href="tel:${c.phone}" class="btn btn-sm btn-success action-btn-sm" title="اتصال"><i class="fa-solid fa-phone"></i></a>
-              <a href="https://wa.me/${formattedPhone}" target="_blank" class="btn btn-sm btn-primary action-btn-sm" style="background-color: #25D366; border:none;" title="واتساب"><i class="fa-brands fa-whatsapp"></i></a>
-            </div>
+            <div class="num-dir fw-bold">${esc(p.local)}</div>
+            <div>${contactButtons(c.phone)}</div>
           </td>
           <td>${progDisplay}</td>
-          <td><span class="num-dir">${c.members || 1}</span> أفراد<br><small class="text-success fw-bold num-dir">${c.price || 0} ج.م</small></td>
-          <td><span class="badge bg-dark">${c.status || ''}</span></td>
-          <td><small><strong>ف1:</strong> ${c.fb1 || '-'}<br><strong>متابعة:</strong> ${c.fb2 || '-'}</small></td>
-          <td><small class="fw-bold">${c.agentName || ''}</small></td>
+          <td><span class="num-dir">${esc(c.members || 1)}</span> أفراد<br><small class="text-success fw-bold num-dir">${esc(c.price || 0)} ج.م</small></td>
+          <td><span class="badge bg-dark">${esc(c.status)}</span>${due ? '<br>' + dueLabel(due) : ''}</td>
+          <td><small><strong>ف1:</strong> ${esc(c.fb1) || '-'}<br><strong>متابعة:</strong> ${esc(c.fb2) || '-'}</small></td>
+          <td><small class="fw-bold">${esc(c.agentName)}</small></td>
           <td>
-            <button onclick="editClient('${c.id}')" class="btn btn-sm btn-outline-dark action-btn-sm" title="تعديل"><i class="fa-solid fa-pen"></i></button>
-            <button onclick="deleteClient('${c.id}')" class="btn btn-sm btn-outline-danger action-btn-sm" title="حذف"><i class="fa-solid fa-trash"></i></button>
+            <button onclick="editClient('${esc(c.id)}')" class="btn btn-sm btn-outline-dark action-btn-sm" title="تعديل"><i class="fa-solid fa-pen"></i></button>
+            <button onclick="deleteClient('${esc(c.id)}')" class="btn btn-sm btn-outline-danger action-btn-sm" title="حذف"><i class="fa-solid fa-trash"></i></button>
           </td>
         </tr>
       `;
-    });
+    }).join("");
   }
 
   function renderFollowupClients() {
     const tbody = document.getElementById("followupTable");
     if (!tbody) return;
     const search = document.getElementById("searchFollowupInput")?.value.toLowerCase().trim() || "";
-    tbody.innerHTML = "";
+    const today = localDateStr();
 
     const list = allData.clients.filter(c => c.isFollowup || c.status === "هياجل لشهر تاني");
     document.getElementById("followupBadge").innerText = list.length;
 
-    const filtered = list.filter(c => `${c.name} ${c.phone} ${c.programName}`.toLowerCase().includes(search));
+    // الأقرب موعداً أولاً، والمؤجل بالشهر في الآخر
+    const filtered = list
+      .filter(c => `${c.name} ${c.phone} ${normalizePhone(c.phone).local} ${c.programName}`.toLowerCase().includes(search))
+      .sort((a, b) => (a.followupDate || '9999').localeCompare(b.followupDate || '9999'));
 
-    filtered.forEach((c, idx) => {
-      tbody.innerHTML += `
-        <tr>
+    tbody.innerHTML = filtered.map((c, idx) => {
+      const p = normalizePhone(c.phone);
+      let dateHtml;
+      if (c.followupDate) {
+        const cls = c.followupDate < today ? 'bg-dark' : (c.followupDate === today ? 'bg-danger' : 'bg-primary');
+        const lbl = c.followupDate < today ? ' (متأخرة)' : (c.followupDate === today ? ' (اليوم)' : '');
+        dateHtml = `<span class="badge ${cls}">${esc(c.followupDay ? c.followupDay + ' ' : '')}${esc(c.followupDate)}${lbl}</span>`;
+      } else {
+        dateHtml = `<span class="badge bg-primary">${esc(c.postponeDate) || '-'}</span>`;
+      }
+      return `
+        <tr class="table-warning">
           <td class="num-dir">${idx + 1}</td>
-          <td><strong>${c.name}</strong></td>
-          <td class="num-dir">${c.phone}</td>
-          <td><span class="badge bg-primary">${c.followupDate || c.postponeDate || '-'}</span></td>
-          <td>${c.programName || ''}</td>
-          <td>${c.status || ''}</td>
-          <td><small>${c.fb2 || c.fb1 || '-'}</small></td>
-          <td>${c.agentName || ''}</td>
+          <td><strong>${esc(c.name)}</strong></td>
+          <td><div class="num-dir fw-bold">${esc(p.local)}</div><div>${contactButtons(c.phone)}</div></td>
+          <td>${dateHtml}</td>
+          <td>${esc(c.programName)}</td>
+          <td>${esc(c.status)}</td>
+          <td><small>${esc(c.fb2 || c.fb1) || '-'}</small></td>
+          <td>${esc(c.agentName)}</td>
           <td>
-            <button onclick="editClient('${c.id}')" class="btn btn-sm btn-info text-white action-btn-sm"><i class="fa-solid fa-pen"></i></button>
-            <button onclick="toggleFollowup('${c.id}', 'لا')" class="btn btn-sm btn-danger action-btn-sm" title="إلغاء المتابعة"><i class="fa-solid fa-xmark"></i></button>
+            <button onclick="editClient('${esc(c.id)}')" class="btn btn-sm btn-info text-white action-btn-sm"><i class="fa-solid fa-pen"></i></button>
+            <button onclick="toggleFollowup('${esc(c.id)}', 'لا')" class="btn btn-sm btn-danger action-btn-sm" title="إلغاء المتابعة"><i class="fa-solid fa-xmark"></i></button>
           </td>
         </tr>
       `;
-    });
+    }).join("");
   }
 
   function renderFinance() {
@@ -623,8 +815,8 @@
       tbody.innerHTML += `
         <tr>
           <td class="num-dir">${idx + 1}</td>
-          <td><strong>${c.name}</strong></td>
-          <td>${c.agentName}</td>
+          <td><strong>${esc(c.name)}</strong></td>
+          <td>${esc(c.agentName)}</td>
           <td class="num-dir fw-bold">${price.toLocaleString()} ج.م</td>
           <td class="num-dir text-success fw-bold">${paid.toLocaleString()} ج.م</td>
           <td class="num-dir text-danger fw-bold">${due.toLocaleString()} ج.م</td>
@@ -680,7 +872,7 @@
         container.innerHTML += `
           <div class="col-md-3 col-6">
             <div class="card p-2 text-center bg-white border">
-              <small class="text-muted">${st}</small>
+              <small class="text-muted">${esc(st)}</small>
               <h4 class="m-0 text-primary fw-bold">${statusCounts[st]}</h4>
             </div>
           </div>
@@ -721,6 +913,7 @@
     if (!c) return;
 
     document.getElementById("cId").value = c.id;
+    document.getElementById("cCreatedDate").value = c.createdDate || "";
     document.getElementById("cName").value = c.name || "";
     document.getElementById("cPhone").value = c.phone || "";
     document.getElementById("cAddress").value = c.address || "";
@@ -783,12 +976,21 @@
       isFollowup: document.getElementById("cIsFollowup").checked ? "نعم" : "لا",
       followupDate: document.getElementById("cFollowupDate").value,
       followupDay: document.getElementById("cFollowupDay").value,
-      createdDate: new Date().toISOString().split('T')[0],
+      createdDate: document.getElementById("cCreatedDate").value || localDateStr(),
       fb1: document.getElementById("cFb1").value,
       fb2: document.getElementById("cFb2").value
     });
 
-    await fetch(`${API}?${query.toString()}`);
+    try {
+      const res = await fetch(`${API}?${query.toString()}`);
+      let result = null;
+      try { result = await res.json(); } catch (e) { /* رد غير JSON: نكمل */ }
+      if (result && result.status === "error") {
+        return alert("تعذر الحفظ: " + (result.message || "خطأ غير معروف"));
+      }
+    } catch (err) {
+      return alert("تعذر الاتصال بالسيرفر، تأكد من الإنترنت وحاول تاني.");
+    }
     bsClientModal.hide();
     refreshData();
   }
@@ -820,12 +1022,14 @@
 
   function updateFollowupDayName() {
     const dt = document.getElementById("cFollowupDate").value;
-    if (dt) document.getElementById("cFollowupDay").value = daysArabic[new Date(dt).getDay()];
+    if (dt) document.getElementById("cFollowupDay").value = daysArabic[new Date(dt + "T00:00:00").getDay()];
   }
 
   function clearDateFilter() {
-    document.getElementById("searchFromDate").value = "";
-    document.getElementById("searchToDate").value = "";
+    searchDates = [];
+    const inp = document.getElementById("searchDate");
+    if (inp) inp.value = "";
+    renderDateChips();
     renderClients();
   }
 
@@ -837,8 +1041,11 @@
   }
 
   function openClientModal() {
-    document.getElementById("cId").value = "0";
     document.querySelectorAll("#clientModal input").forEach(i => i.type === 'checkbox' ? i.checked = false : i.value = "");
+    document.getElementById("cId").value = "0";
+    document.getElementById("cMembers").value = "1";
+    document.getElementById("cStatus").selectedIndex = 0;
+    document.getElementById("cPostponeMonth").selectedIndex = 0;
     document.getElementById("cProgramCategory").value = "عمرة";
     onCategoryChange();
     onStatusChange();
