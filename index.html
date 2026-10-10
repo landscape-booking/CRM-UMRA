@@ -31,15 +31,50 @@
     }
     .btn-floating-add:hover { transform: scale(1.1); color: white; }
     .action-btn-sm { width: 30px; height: 30px; padding: 0; display: inline-flex; align-items: center; justify-content: center; border-radius: 50% !important; margin: 0 1px; }
-    .stat-card { border-right: 4px solid #0d6efd; }
+    .clickable-card { cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; }
+    .clickable-card:hover { transform: translateY(-3px); box-shadow: 0 6px 16px rgba(0,0,0,0.15) !important; }
     .date-chip { font-size: 0.85rem; padding: 0.5em 0.8em; }
     .date-chip i { cursor: pointer; opacity: 0.85; }
     .date-chip i:hover { opacity: 1; }
     .pulse { animation: crmPulse 1.4s infinite; }
     @keyframes crmPulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
+
+    /* حالة "هيحجز" (قيد الحجز) - لون بنفسجي مميز */
+    .row-willbook > td { background-color: #e6dcfb !important; }
+    .badge-purple { background-color: #6f42c1 !important; color: #fff; }
+    .st-row > td { background-color: var(--rowbg) !important; }
+
+    /* شاشة التحميل */
+    .loading-overlay {
+      position: fixed; inset: 0; background: rgba(255,255,255,0.75); z-index: 3500;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
+    }
+    .loading-overlay .spinner-border { width: 4rem; height: 4rem; border-width: 0.4rem; }
+    #errorBanner { position: fixed; top: 10px; left: 50%; transform: translateX(-50%); z-index: 3600; width: 92%; max-width: 640px; }
+    .trip-readonly input:disabled, .trip-readonly select:disabled { background-color: #f1f3f5; color: #212529; }
   </style>
 </head>
 <body class="p-2 p-md-4">
+
+<!-- شاشة التحميل (دايرة بتلف) -->
+<div id="loadingOverlay" class="loading-overlay hidden">
+  <div class="spinner-border text-primary" role="status"></div>
+  <div id="loadingText" class="fw-bold text-primary">جاري التحميل...</div>
+</div>
+
+<!-- شريط الأخطاء مع سبب المشكلة -->
+<div id="errorBanner" class="alert alert-danger shadow hidden" role="alert">
+  <div class="d-flex justify-content-between align-items-start gap-2">
+    <div>
+      <strong><i class="fa-solid fa-triangle-exclamation me-1"></i> حدثت مشكلة:</strong>
+      <div id="errorBannerText" class="mt-1 small"></div>
+    </div>
+    <div class="text-nowrap">
+      <button id="errorRetryBtn" class="btn btn-sm btn-light hidden">إعادة المحاولة</button>
+      <button type="button" class="btn-close" onclick="hideError()"></button>
+    </div>
+  </div>
+</div>
 
 <div class="container-fluid" style="max-width: 1400px;">
 
@@ -47,31 +82,36 @@
   <div id="loginBox" class="card p-4 mx-auto shadow mt-5" style="max-width: 400px;">
     <h4 class="text-center text-primary mb-3"><i class="fa-solid fa-users-gear me-2"></i>تسجيل الدخول</h4>
     <input type="text" id="userInput" class="form-control mb-2" placeholder="اسم المستخدم">
-    <input type="password" id="passInput" class="form-control mb-3" placeholder="كلمة المرور">
+    <input type="password" id="passInput" class="form-control mb-3" placeholder="كلمة المرور" onkeydown="if(event.key==='Enter') login()">
     <button onclick="login()" class="btn btn-primary w-100">دخول</button>
     <button onclick="installApp()" class="btn btn-outline-primary w-100 mt-2 install-btn hidden"><i class="fa-solid fa-download me-1"></i> تثبيت التطبيق على الشاشة</button>
     <div id="loginErr" class="alert alert-danger mt-3 py-1 text-center hidden"></div>
   </div>
 
-  <!-- التطبيق -->
+  <!-- التطبيق الرئيسي -->
   <div id="app" class="hidden">
     <!-- الشريط العلوي -->
-    <div class="d-flex justify-content-between align-items-center bg-white p-3 mb-3 shadow-sm">
+    <div class="d-flex justify-content-between align-items-center bg-white p-3 mb-3 shadow-sm rounded-3 flex-wrap gap-2">
       <div>
         <h5 id="userNameTxt" class="m-0 text-primary fw-bold"></h5>
-        <small id="userRoleTxt" class="text-muted"></small>
+        <small id="userRoleTxt" class="badge bg-secondary"></small>
       </div>
-      <div class="d-flex align-items-center gap-2">
+      <div class="d-flex align-items-center gap-2 flex-wrap">
         <button onclick="installApp()" class="btn btn-outline-primary btn-sm install-btn hidden"><i class="fa-solid fa-download"></i> تثبيت</button>
+        <button onclick="refreshData()" class="btn btn-outline-secondary btn-sm" title="تحديث البيانات"><i class="fa-solid fa-rotate"></i></button>
+        <button id="adminNotesBellBtn" onclick="openAdminNotesModal()" class="btn btn-outline-info position-relative btn-sm">
+          <i class="fa-solid fa-envelope"></i> التنبيهات الإدارية
+          <span id="adminNotesBadge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger hidden">0</span>
+        </button>
         <button id="notifBellBtn" onclick="checkTodayNotifications(true)" class="btn btn-outline-warning position-relative btn-sm">
-          <i class="fa-solid fa-bell"></i> التنبيهات
+          <i class="fa-solid fa-bell"></i> المتابعات اليومية
           <span id="notifBadge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger hidden">0</span>
         </button>
         <button onclick="logout()" class="btn btn-outline-danger btn-sm"><i class="fa-solid fa-right-from-bracket me-1"></i> خروج</button>
       </div>
     </div>
 
-    <!-- شريط تنبيه المتابعة الظاهر دائماً -->
+    <!-- شريط تنبيه المتابعة -->
     <div id="todayBanner" class="alert alert-warning d-flex justify-content-between align-items-center shadow-sm hidden" role="alert">
       <div><i class="fa-solid fa-bell me-2 pulse"></i><strong id="todayBannerText"></strong></div>
       <button class="btn btn-sm btn-warning text-nowrap" onclick="checkTodayNotifications(true)">عرض المتابعات</button>
@@ -79,28 +119,32 @@
 
     <!-- تبويبات التصفح -->
     <ul class="nav nav-pills mb-3 gap-2" id="mainTabs">
-      <li class="nav-item"><a class="nav-link active" id="t-clients" href="#" onclick="switchTab('clients')"><i class="fa-solid fa-address-book me-1"></i> سجلات المعتمرين</a></li>
-      <li class="nav-item"><a class="nav-link" id="t-followup" href="#" onclick="switchTab('followup')"><i class="fa-solid fa-clock-rotate-left me-1"></i> صفحة المتابعة <span id="followupBadge" class="badge bg-warning text-dark ms-1">0</span></a></li>
-      <li class="nav-item"><a class="nav-link" id="t-finance" href="#" onclick="switchTab('finance')"><i class="fa-solid fa-wallet me-1"></i> الخزنة والدفع والآجل</a></li>
-      <li class="nav-item"><a class="nav-link" id="t-stats" href="#" onclick="switchTab('stats')"><i class="fa-solid fa-chart-pie me-1"></i> الإحصائيات والعمولات</a></li>
-      <li class="nav-item hidden admin-only"><a class="nav-link" id="t-settings" href="#" onclick="switchTab('settings')"><i class="fa-solid fa-gear me-1"></i> إدارة البرامج والسيستم</a></li>
+      <li class="nav-item"><a class="nav-link active" id="t-clients" href="#" onclick="switchTab('clients'); return false;"><i class="fa-solid fa-address-book me-1"></i> سجلات المعتمرين</a></li>
+      <li class="nav-item"><a class="nav-link" id="t-followup" href="#" onclick="switchTab('followup'); return false;"><i class="fa-solid fa-clock-rotate-left me-1"></i> صفحة المتابعة <span id="followupBadge" class="badge bg-warning text-dark ms-1">0</span></a></li>
+      <li class="nav-item hidden admin-or-tech"><a class="nav-link" id="t-pending" href="#" onclick="switchTab('pending'); return false;" style="border:1px solid #6f42c1;color:#6f42c1;"><i class="fa-solid fa-hourglass-half me-1"></i> شاشة قيد الحجز <span id="pendingBadge" class="badge badge-purple ms-1">0</span></a></li>
+      <li class="nav-item hidden admin-or-tech"><a class="nav-link" id="t-requests" href="#" onclick="switchTab('requests'); return false;"><i class="fa-solid fa-envelope-open-text me-1"></i> طلبات تعديل الرحلات <span id="requestsBadge" class="badge bg-danger ms-1">0</span></a></li>
+      <li class="nav-item"><a class="nav-link" id="t-finance" href="#" onclick="switchTab('finance'); return false;"><i class="fa-solid fa-wallet me-1"></i> الخزنة والدفع والآجل</a></li>
+      <li class="nav-item"><a class="nav-link" id="t-stats" href="#" onclick="switchTab('stats'); return false;"><i class="fa-solid fa-chart-pie me-1"></i> الإحصائيات و KPIs والعمولات</a></li>
+      <li class="nav-item hidden admin-or-tech"><a class="nav-link" id="t-settings" href="#" onclick="switchTab('settings'); return false;"><i class="fa-solid fa-gear me-1"></i> إدارة البرامج والسيستم</a></li>
+      <li class="nav-item hidden tech-only"><a class="nav-link bg-danger text-white" id="t-users" href="#" onclick="switchTab('users'); return false;"><i class="fa-solid fa-user-gear me-1"></i> إدارة الموظفين (المدير الفني)</a></li>
     </ul>
 
     <!-- قسم السجلات -->
     <div id="sec-clients" class="card p-3 shadow-sm">
       <div class="row g-2 mb-3 align-items-center">
         <div class="col-md-6">
-          <input type="text" id="searchInput" class="form-control" placeholder="ابحث باسم المعتمر، الهاتف، البرنامج..." onkeyup="renderClients()">
+          <input type="text" id="searchInput" class="form-control" placeholder="ابحث باسم المعتمر، الهاتف، البرنامج، الموظف..." onkeyup="renderClients()">
         </div>
         <div class="col-md-4">
           <div class="input-group">
-            <input type="date" id="searchDate" class="form-control" onchange="addSearchDate(this.value)" title="اختر تاريخ التسجيل — وتقدر تختار أكتر من تاريخ">
+            <input type="date" id="searchDate" class="form-control" onchange="addSearchDate(this.value)" title="اختر تاريخ التسجيل">
             <button type="button" class="btn btn-outline-primary text-nowrap" onclick="addSearchDate(localDateStr())">اليوم</button>
           </div>
         </div>
         <div class="col-md-2"><button onclick="clearDateFilter()" class="btn btn-outline-secondary w-100">إلغاء التصفية</button></div>
       </div>
       <div id="dateChips" class="d-flex flex-wrap align-items-center gap-2 mb-3 hidden"></div>
+      <div id="statusLegend" class="d-flex flex-wrap gap-2 mb-3"></div>
 
       <div class="table-responsive">
         <table class="table align-middle" style="font-size: 0.88rem;">
@@ -111,7 +155,7 @@
               <th>التواصل</th>
               <th>نوع الرحلة / البرنامج</th>
               <th>الأفراد / السعر</th>
-              <th>الحالة</th>
+              <th>الحالة والمراجعة</th>
               <th>الفيدباك وملاحظة المتابعة</th>
               <th>الموظف</th>
               <th>إجراءات</th>
@@ -148,10 +192,40 @@
       </div>
     </div>
 
+    <!-- شاشة قيد الحجز (للمشرف والمديرين فقط) -->
+    <div id="sec-pending" class="card p-3 shadow-sm hidden" style="border-top: 5px solid #6f42c1;">
+      <h6 class="fw-bold m-0 mb-1" style="color:#6f42c1;"><i class="fa-solid fa-hourglass-half me-2"></i>شاشة قيد الحجز (حالة "هيحجز")</h6>
+      <p class="text-muted small mb-3">العملاء اللي الموظف حوّلهم للمشرف علشان يكمل معاهم الحجز.</p>
+      <div class="table-responsive">
+        <table class="table align-middle" style="font-size: 0.88rem;">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>اسم العميل</th>
+              <th>التواصل</th>
+              <th>البرنامج</th>
+              <th>الأفراد / السعر</th>
+              <th>الفيدباك</th>
+              <th>الموظف</th>
+              <th>إجراءات</th>
+            </tr>
+          </thead>
+          <tbody id="pendingTable"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- طلبات تعديل بيانات الرحلات (للمديرين) -->
+    <div id="sec-requests" class="card p-3 shadow-sm hidden">
+      <h6 class="text-primary fw-bold mb-1"><i class="fa-solid fa-envelope-open-text me-2"></i>طلبات الموظفين لتعديل بيانات الرحلة</h6>
+      <p class="text-muted small mb-3">عند الموافقة تُحفظ البيانات الجديدة للعميل ويصل الموظف إشعار باسم المدير الموافق، وعند الرفض تبقى البيانات القديمة.</p>
+      <div id="requestsList"></div>
+    </div>
+
     <!-- صفحة المالية والخزنة -->
     <div id="sec-finance" class="card p-3 shadow-sm hidden">
       <div class="row g-3 mb-3">
-        <div class="col-md-4"><div class="card p-3 bg-success text-white"><h6>إجمالي المقبوضات الفلية (الخزنة)</h6><h3 id="finVault">0 ج.م</h3></div></div>
+        <div class="col-md-4"><div class="card p-3 bg-success text-white"><h6>إجمالي المقبوضات الفعلية (الخزنة)</h6><h3 id="finVault">0 ج.م</h3></div></div>
         <div class="col-md-4"><div class="card p-3 bg-danger text-white"><h6>إجمالي المستحقات المتبقية (الآجل)</h6><h3 id="finDue">0 ج.م</h3></div></div>
         <div class="col-md-4"><div class="card p-3 bg-primary text-white"><h6>إجمالي عقود الحجوزات المؤكدة</h6><h3 id="finTotalContract">0 ج.م</h3></div></div>
       </div>
@@ -175,7 +249,7 @@
       </div>
     </div>
 
-    <!-- صفحة الإحصائيات والعمولات -->
+    <!-- صفحة الإحصائيات و KPIs والعمولات -->
     <div id="sec-stats" class="card p-3 shadow-sm hidden">
       <div class="row g-2 mb-3 bg-light p-2 rounded">
         <div class="col-md-3">
@@ -200,37 +274,272 @@
         </div>
       </div>
 
+      <!-- بطاقات الإحصائيات الرئيسية - قابلة للضغط -->
+      <p class="text-muted small mb-2"><i class="fa-solid fa-hand-pointer me-1"></i> اضغط على أي كارت إحصائي لعرض تفاصيل العملاء والموظفين بداخلها (والمديرين يقدرون يبعتوا تنبيه للموظف):</p>
       <div class="row g-3 mb-4">
-        <div class="col-md-3"><div class="card p-3 bg-primary text-white"><h6>إجمالي المبيعات المؤكدة</h6><h3 id="stSales">0 ج.م</h3></div></div>
-        <div class="col-md-3"><div class="card p-3 bg-success text-white"><h6>أفراد (تم الحجز والتعاقد)</h6><h3 id="stBookedCount">0 أفراد</h3></div></div>
-        <div class="col-md-3"><div class="card p-3 bg-warning text-dark"><h6>إجمالي العمولات المستحقة (500ج/فرد)</h6><h3 id="stCommission">0 ج.م</h3></div></div>
-        <div class="col-md-3"><div class="card p-3 bg-info text-white"><h6>إجمالي جميع المعاملات</h6><h3 id="stTotalClients">0 عميل</h3></div></div>
+        <div class="col-md-3">
+          <div class="card p-3 bg-primary text-white clickable-card" onclick="openStatDrilldown('المبيعات المؤكدة')">
+            <h6>إجمالي المبيعات المؤكدة</h6>
+            <h3 id="stSales">0 ج.م</h3>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card p-3 bg-success text-white clickable-card" onclick="openStatDrilldown('تم الحجز والتعاقد')">
+            <h6>أفراد (تم الحجز والتعاقد)</h6>
+            <h3 id="stBookedCount">0 أفراد</h3>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card p-3 bg-warning text-dark clickable-card" onclick="openStatDrilldown('العمولات')">
+            <h6>إجمالي العمولات المستحقة (500ج/فرد)</h6>
+            <h3 id="stCommission">0 ج.م</h3>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card p-3 bg-info text-white clickable-card" onclick="openStatDrilldown('الكل')">
+            <h6>إجمالي جميع المعاملات</h6>
+            <h3 id="stTotalClients">0 عميل</h3>
+          </div>
+        </div>
       </div>
 
-      <h6 class="fw-bold text-secondary mb-3"><i class="fa-solid fa-chart-simple me-1"></i> تفاصيل الحالات والعملاء في النطاق المحدد:</h6>
+      <!-- نظام KPI ومعدلات التحويل -->
+      <div class="card p-3 bg-light border-primary mb-4">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+          <h5 class="fw-bold text-primary m-0"><i class="fa-solid fa-chart-line me-2"></i>مؤشرات الأداء الرئيسية (KPIs) ونسب التحويل</h5>
+          <button class="btn btn-sm btn-outline-success" onclick="exportKpiCsv()"><i class="fa-solid fa-file-csv me-1"></i> تصدير الأداء (Excel/CSV)</button>
+        </div>
+        <div class="row g-3">
+          <div class="col-md-3">
+            <div class="card p-3 text-center border-0 shadow-sm bg-white h-100">
+              <small class="text-muted fw-bold">معدل تحويل المبيعات (Conversion Rate)</small>
+              <h2 id="kpiConversionRate" class="text-success fw-bold my-1">0%</h2>
+              <small class="text-muted">(الحجوزات المؤكدة ÷ إجمالي التفاعلات)</small>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card p-3 text-center border-0 shadow-sm bg-white h-100">
+              <small class="text-muted fw-bold">نسبة المتابعة والالتزام</small>
+              <h2 id="kpiFollowupRate" class="text-primary fw-bold my-1">0%</h2>
+              <small class="text-muted">(العملاء المضافين لصفحة المتابعة)</small>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card p-3 text-center border-0 shadow-sm bg-white h-100">
+              <small class="text-muted fw-bold">متوسط سعر الفرد</small>
+              <h2 id="kpiAvgTicket" class="text-dark fw-bold my-1">0 ج.م</h2>
+              <small class="text-muted">(إجمالي المبيعات ÷ عدد الأفراد المحجوزين)</small>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card p-3 text-center border-0 shadow-sm bg-white h-100">
+              <small class="text-muted fw-bold">نسبة التحصيل</small>
+              <h2 id="kpiCollection" class="text-success fw-bold my-1">0%</h2>
+              <small class="text-muted">(المدفوع ÷ إجمالي العقود المؤكدة)</small>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card p-3 text-center border-0 shadow-sm bg-white h-100">
+              <small class="text-muted fw-bold">نسبة الفاقد</small>
+              <h2 id="kpiLost" class="text-danger fw-bold my-1">0%</h2>
+              <small class="text-muted">(مش هيحجز / قفل السكة / مش بيرد)</small>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card p-3 text-center border-0 shadow-sm bg-white h-100 clickable-card" onclick="openStatDrilldown('هيحجز')">
+              <small class="text-muted fw-bold">قيد الحجز (هيحجز)</small>
+              <h2 id="kpiPending" class="fw-bold my-1" style="color:#6f42c1;">0</h2>
+              <small class="text-muted">(عملاء عند المشرف لاستكمال الحجز)</small>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card p-3 text-center border-0 shadow-sm bg-white h-100">
+              <small class="text-muted fw-bold">متوسط قيمة العقد</small>
+              <h2 id="kpiAvgContract" class="text-dark fw-bold my-1">0 ج.م</h2>
+              <small class="text-muted">(إجمالي المبيعات ÷ عدد العقود)</small>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card p-3 text-center border-0 shadow-sm bg-white h-100">
+              <small class="text-muted fw-bold">متابعات متأخرة / مستحقة الآن</small>
+              <h2 id="kpiOverdue" class="text-warning fw-bold my-1">0</h2>
+              <small class="text-muted">(متابعات حان وقتها ولم تُنفذ)</small>
+            </div>
+          </div>
+        </div>
+
+        <!-- الأهداف الشهرية -->
+        <div id="targetsBox" class="card p-3 mt-3 bg-white border-0 shadow-sm hidden">
+          <h6 class="fw-bold text-dark mb-3"><i class="fa-solid fa-bullseye me-1 text-danger"></i> تحقيق الأهداف الشهرية (الشهر الحالي)</h6>
+          <div class="row g-3">
+            <div class="col-md-6"><div id="tgSalesBar"></div></div>
+            <div class="col-md-6"><div id="tgPersonsBar"></div></div>
+          </div>
+        </div>
+
+        <!-- الرسوم البيانية -->
+        <div class="row g-3 mt-1">
+          <div class="col-lg-5"><div class="card p-3 bg-white border-0 shadow-sm"><h6 class="fw-bold small">المبيعات المؤكدة شهرياً</h6><div style="height:240px"><canvas id="chSales"></canvas></div></div></div>
+          <div class="col-lg-3"><div class="card p-3 bg-white border-0 shadow-sm"><h6 class="fw-bold small">توزيع الحالات</h6><div style="height:240px"><canvas id="chStatus"></canvas></div></div></div>
+          <div class="col-lg-4"><div class="card p-3 bg-white border-0 shadow-sm"><h6 class="fw-bold small">مبيعات الموظفين</h6><div style="height:240px"><canvas id="chEmp"></canvas></div></div></div>
+        </div>
+
+        <!-- جدول أداء الموظفين Leaderboard -->
+        <h6 class="fw-bold text-dark mt-4 mb-2"><i class="fa-solid fa-trophy me-1 text-warning"></i> جدول تقييم أداء الموظفين ومعدل التحويل (Leaderboard)</h6>
+        <div class="table-responsive">
+          <table class="table table-bordered bg-white align-middle" style="font-size: 0.85rem;">
+            <thead class="table-dark">
+              <tr>
+                <th>الموظف</th>
+                <th>إجمالي العملاء</th>
+                <th>المتعاقدين</th>
+                <th>نسبة التحويل (CR)</th>
+                <th>إجمالي المبيعات</th>
+                <th>العمولة المستحقة</th>
+                <th>التقييم</th>
+              </tr>
+            </thead>
+            <tbody id="kpiEmployeeTable"></tbody>
+          </table>
+        </div>
+
+        <!-- أداء البرامج -->
+        <h6 class="fw-bold text-dark mt-4 mb-2"><i class="fa-solid fa-suitcase-rolling me-1 text-primary"></i> أداء البرامج والرحلات</h6>
+        <div class="table-responsive">
+          <table class="table table-bordered bg-white align-middle" style="font-size: 0.85rem;">
+            <thead class="table-dark">
+              <tr>
+                <th>البرنامج</th>
+                <th>العملاء</th>
+                <th>المتعاقدين</th>
+                <th>الأفراد</th>
+                <th>نسبة التحويل</th>
+                <th>المبيعات</th>
+              </tr>
+            </thead>
+            <tbody id="kpiProgramTable"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- تفاصيل توزيع الحالات الضغط للتفاصيل -->
+      <h6 class="fw-bold text-secondary mb-3"><i class="fa-solid fa-chart-simple me-1"></i> تفاصيل الحالات والحجوزات (اضغط على أي حالة لعرض عملائها):</h6>
       <div class="row g-2" id="statusCountsContainer"></div>
     </div>
 
-    <!-- قسم الإعدادات -->
+    <!-- قسم الإعدادات والبرامج -->
     <div id="sec-settings" class="hidden">
       <div class="row g-3">
+
+        <!-- منشئ البرامج المفصلة -->
+        <div class="col-12">
+          <div class="card p-3 border-success" style="border: 2px solid #198754 !important;">
+            <h6 class="fw-bold text-success"><i class="fa-solid fa-square-plus me-1"></i> إضافة برنامج رحلة بكل تفاصيله</h6>
+            <p class="text-muted small mb-2">البرنامج اللي تحفظه هنا هيظهر لكل الموظفين في خانة "البرنامج" عند إضافة عميل، بنفس التفاصيل.</p>
+            <div class="row g-2 mb-2">
+              <div class="col-md-4">
+                <label class="form-label small fw-bold">نوع الرحلة</label>
+                <select id="pbCategory" class="form-select" onchange="onPbCategoryChange()">
+                  <option value="عمرة">عمرة</option>
+                  <option value="تركيا">رحلات تركيا</option>
+                  <option value="رحلات خارجية">رحلات خارجية (ماليزيا وباقي الدول)</option>
+                  <option value="رحلات داخلية">رحلات داخلية</option>
+                </select>
+              </div>
+            </div>
+            <div id="pbForm"></div>
+            <div class="mt-3 d-flex gap-2">
+              <button class="btn btn-success" onclick="saveProgramFromBuilder()"><i class="fa-solid fa-floppy-disk me-1"></i> حفظ البرنامج</button>
+              <button class="btn btn-outline-secondary" onclick="resetProgramBuilder()">برنامج جديد / مسح</button>
+              <span id="pbEditingInfo" class="align-self-center small text-primary fw-bold"></span>
+            </div>
+            <hr>
+            <h6 class="fw-bold mb-2"><i class="fa-solid fa-list me-1"></i> البرامج المضافة</h6>
+            <div class="table-responsive">
+              <table class="table table-sm align-middle" style="font-size:0.85rem;">
+                <thead><tr><th>النوع</th><th>اسم البرنامج</th><th>السفر</th><th>العودة</th><th>السعر</th><th>أضافه</th><th>إجراءات</th></tr></thead>
+                <tbody id="programsAdminTable"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- أهداف KPI -->
+        <div class="col-12">
+          <div class="card p-3">
+            <h6 class="fw-bold"><i class="fa-solid fa-bullseye me-1 text-danger"></i> أهداف KPI الشهرية</h6>
+            <div class="row g-2 align-items-end">
+              <div class="col-md-4"><label class="form-label small">هدف المبيعات الشهري (ج.م)</label><input type="number" id="tgSalesInput" class="form-control num-dir" min="0"></div>
+              <div class="col-md-4"><label class="form-label small">هدف عدد الأفراد المتعاقدين شهرياً</label><input type="number" id="tgPersonsInput" class="form-control num-dir" min="0"></div>
+              <div class="col-md-4"><button class="btn btn-danger w-100" onclick="saveTargets()">حفظ الأهداف</button></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- القوائم السريعة القديمة (أسماء فقط) -->
         <div class="col-md-6">
           <div class="card p-3">
-            <h6><i class="fa-solid fa-kaaba me-1"></i> إضافة برنامج عمرة جديد</h6>
+            <h6><i class="fa-solid fa-kaaba me-1 text-success"></i> إضافة برنامج عمرة جديد (اسم فقط)</h6>
             <div class="d-flex gap-2 mt-2">
               <input type="text" id="npOmraName" class="form-control" placeholder="اسم برنامج العمرة">
               <button onclick="addProgram('عمرة')" class="btn btn-success btn-sm text-nowrap">إضافة</button>
             </div>
+            <div id="omraProgList" class="mt-3"></div>
           </div>
         </div>
         <div class="col-md-6">
           <div class="card p-3">
-            <h6><i class="fa-solid fa-plane-departure me-1"></i> إضافة برنامج تركيا جديد</h6>
+            <h6><i class="fa-solid fa-plane-departure me-1 text-info"></i> إضافة برنامج تركيا جديد (اسم فقط)</h6>
             <div class="d-flex gap-2 mt-2">
               <input type="text" id="npTurkeyName" class="form-control" placeholder="اسم برنامج تركيا">
               <button onclick="addProgram('تركيا')" class="btn btn-info btn-sm text-white text-nowrap">إضافة</button>
             </div>
+            <div id="turkeyProgList" class="mt-3"></div>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- قسم إدارة الموظفين والمستخدمين (خاص بالمدير الفني للسيستم) -->
+    <div id="sec-users" class="hidden">
+      <div class="card p-3 shadow-sm border-danger">
+        <h5 class="text-danger fw-bold"><i class="fa-solid fa-user-shield me-2"></i>لوحة المدير الفني للسيستم: إضافة وإدارة الموظفين</h5>
+        <p class="text-muted small mb-3">أنت بصفتك المدير الفني للسيستم، المسئول الوحيد المصرح له بإضافة أو تعديل أو حذف حسابات الموظفين والمديرين.</p>
+
+        <div class="card p-3 bg-light mb-3">
+          <h6 class="fw-bold"><i class="fa-solid fa-user-plus me-1"></i> إضافة / تعديل موظف</h6>
+          <div class="row g-2">
+            <div class="col-md-3"><label class="form-label">اسم المستخدم (Login)</label><input type="text" id="uUsername" class="form-control"></div>
+            <div class="col-md-3"><label class="form-label">كلمة المرور</label><input type="text" id="uPassword" class="form-control"></div>
+            <div class="col-md-2"><label class="form-label">كود الموظف</label><input type="text" id="uCode" class="form-control" placeholder="مثال: M01"></div>
+            <div class="col-md-2">
+              <label class="form-label">الوظيفة / الدور</label>
+              <select id="uRole" class="form-select">
+                <option value="mowazaf">موظف مبيعات</option>
+                <option value="followup_manager">مدير متابعة</option>
+                <option value="tech_manager">المدير الفني للسيستم</option>
+                <option value="admin">مدير عام النظام</option>
+              </select>
+            </div>
+            <div class="col-md-2"><label class="form-label">الاسم الظاهر</label><input type="text" id="uName" class="form-control" placeholder="الاسم ثلاثي"></div>
+          </div>
+          <button onclick="saveUserByTech()" class="btn btn-danger mt-3 w-100 fw-bold"><i class="fa-solid fa-floppy-disk me-1"></i> حفظ بيانات الموظف</button>
+        </div>
+
+        <h6 class="fw-bold mt-2"><i class="fa-solid fa-users me-1"></i> قائمة الموظفين الحاليين بالسيستم</h6>
+        <div class="table-responsive">
+          <table class="table table-bordered align-middle" style="font-size: 0.88rem;">
+            <thead class="table-dark">
+              <tr>
+                <th>اسم المستخدم</th>
+                <th>الاسم الظاهر</th>
+                <th>الكود</th>
+                <th>الدور / الوظيفة</th>
+                <th>إجراءات</th>
+              </tr>
+            </thead>
+            <tbody id="usersListTable"></tbody>
+          </table>
         </div>
       </div>
     </div>
@@ -241,6 +550,86 @@
 <!-- زر الإضافة العائم -->
 <button id="floatingAddBtn" onclick="openClientModal()" class="btn-floating-add hidden" title="إضافة عميل جديد"><i class="fa-solid fa-plus"></i></button>
 
+<!-- مودال التنبيهات والرسائل الإدارية -->
+<div class="modal fade" id="adminNotesModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content border-info border-3">
+      <div class="modal-header bg-info text-white">
+        <h5 class="modal-title fw-bold"><i class="fa-solid fa-envelope me-2"></i>التنبيهات والملاحظات الإدارية الموجهة</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div id="adminNotesList" class="list-group"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- مودال إرسال تنبيه لموظف على عميل -->
+<div class="modal fade" id="sendNoteModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title"><i class="fa-solid fa-paper-plane me-2"></i>إرسال تنبيه للموظف</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="noteClientId">
+        <input type="hidden" id="noteToUser">
+        <div class="mb-2">
+          <label class="form-label">العميل:</label>
+          <input type="text" id="noteClientName" class="form-control bg-light" readonly>
+        </div>
+        <div class="mb-2">
+          <label class="form-label">الموظف المستهدف:</label>
+          <input type="text" id="noteToUserName" class="form-control bg-light" readonly>
+        </div>
+        <div class="mb-2">
+          <label class="form-label">نص الملاحظة أو التوجيه للموظف:</label>
+          <textarea id="noteText" class="form-control" rows="3" placeholder="مثال: العميل ده محتاج متابعة عاجلة، أو محتاج تغيير البرنامج..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+        <button type="button" class="btn btn-primary" onclick="submitAdminNote()">إرسال التنبيه</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- مودال تفاصيل الإحصائية عند الضغط على أي كارت -->
+<div class="modal fade" id="statDrillModal" tabindex="-1">
+  <div class="modal-dialog modal-xl">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title" id="statDrillTitle">تفاصيل الإحصائية</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div id="statDrillEmployees" class="d-flex flex-wrap gap-2 mb-3"></div>
+        <div class="table-responsive">
+          <table class="table table-bordered align-middle" style="font-size: 0.85rem;">
+            <thead class="table-light">
+              <tr>
+                <th>#</th>
+                <th>اسم العميل</th>
+                <th>الهاتف</th>
+                <th>البرنامج</th>
+                <th>الأفراد / السعر</th>
+                <th>الحالة</th>
+                <th>الموظف الكاتب</th>
+                <th>تاريخ التسجيل</th>
+                <th>إجراء</th>
+              </tr>
+            </thead>
+            <tbody id="statDrillTable"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- مودال تنبيهات المتابعة -->
 <div class="modal fade" id="notifModal" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
@@ -250,7 +639,7 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
       </div>
       <div class="modal-body">
-        <p class="mb-2">العملاء دول مستحقين للمتابعة النهارده أو متأخرين. بعد ما تكلمهم اضغط «تمت المتابعة» وحدّث حالتهم:</p>
+        <p class="mb-2">العملاء دول حان موعد متابعتهم أو متأخرين. التنبيه مش هيختفي غير لما تضغط «تمت المتابعة» وتغيّر حالة الحجز وتكتب فيدباك:</p>
         <div id="notifClientsList" class="list-group"></div>
       </div>
       <div class="modal-footer justify-content-between">
@@ -263,32 +652,37 @@
 
 <!-- مودال إضافة / تعديل معتمر -->
 <div class="modal fade" id="clientModal" tabindex="-1">
-  <div class="modal-dialog modal-lg">
+  <div class="modal-dialog modal-xl">
     <div class="modal-content">
       <div class="modal-header bg-primary text-white">
         <h5 class="modal-title" id="modalTitle">بيانات العميل والرحلة</h5>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
+        <div id="completionBanner" class="alert alert-warning hidden">
+          <i class="fa-solid fa-bell me-1"></i><strong>إتمام متابعة:</strong> غيّر <b>حالة الحجز</b> واكتب <b>فيدباك جديد</b>، وبعدها حدد موعد متابعة جديد أو أوقف المتابعة، وبعدين احفظ.
+        </div>
         <input type="hidden" id="cId" value="0">
         <input type="hidden" id="cCreatedDate" value="">
         <div class="row g-2">
           <div class="col-md-6"><label class="form-label">اسم العميل</label><input type="text" id="cName" class="form-control" required></div>
           <div class="col-md-6"><label class="form-label">رقم الموبايل</label><input type="tel" id="cPhone" class="form-control num-dir" placeholder="01xxxxxxxxx" required></div>
           <div class="col-md-6"><label class="form-label">العنوان</label><input type="text" id="cAddress" class="form-control"></div>
-          <div class="col-md-6"><label class="form-label">عدد الأفراد</label><input type="number" id="cMembers" class="form-control num-dir" value="1" min="1"></div>
-          
+          <div class="col-md-6"><label class="form-label">عدد الأفراد</label><input type="number" id="cMembers" class="form-control num-dir" value="1" min="1" oninput="onMembersChange()"></div>
+
           <div class="col-md-6">
             <label class="form-label">نوع الرحلة</label>
             <select id="cProgramCategory" class="form-select" onchange="onCategoryChange()">
               <option value="عمرة">عمرة</option>
               <option value="تركيا">رحلات تركيا</option>
+              <option value="رحلات خارجية">رحلات خارجية (ماليزيا وباقي الدول)</option>
+              <option value="رحلات داخلية">رحلات داخلية</option>
             </select>
           </div>
 
           <div class="col-md-6">
             <label class="form-label">البرنامج / الرحلة</label>
-            <select id="cProgramName" class="form-select"></select>
+            <select id="cProgramName" class="form-select" onchange="onProgramChange()"></select>
           </div>
 
           <div class="col-md-12 hidden" id="turkeySubDiv">
@@ -296,12 +690,33 @@
             <input type="text" id="cTurkeySubName" class="form-control border-info" placeholder="اسم رحلة تركيا بالتفصيل...">
           </div>
 
+          <!-- تفاصيل البرنامج -->
+          <div class="col-md-12 hidden" id="tripBoxWrap">
+            <div class="p-3 border border-primary rounded bg-white">
+              <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                <h6 class="text-primary fw-bold m-0"><i class="fa-solid fa-suitcase-rolling me-1"></i> تفاصيل البرنامج</h6>
+                <span id="tripApprovedInfo" class="small text-success fw-bold"></span>
+                <button type="button" id="tripEditBtn" class="btn btn-sm btn-outline-primary hidden" onclick="startTripEdit()"><i class="fa-solid fa-pen me-1"></i> طلب تعديل بيانات الرحلة</button>
+              </div>
+              <div id="tripPendingInfo" class="alert alert-warning py-1 small hidden"></div>
+              <div id="tripForm"></div>
+              <div id="tripReqArea" class="mt-2 hidden">
+                <label class="form-label small fw-bold">سبب / ملاحظة طلب التعديل (للمدير)</label>
+                <input type="text" id="tripReqReason" class="form-control mb-2" placeholder="مثال: العميل طلب فندق أقرب للحرم">
+                <button type="button" class="btn btn-sm btn-primary" onclick="sendTripRequest()"><i class="fa-solid fa-paper-plane me-1"></i> إرسال طلب للمدير</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="cancelTripEdit()">إلغاء التعديل</button>
+                <div class="small text-muted mt-1">لن تُحفظ أي تعديلات إلا بعد موافقة المدير؛ لو رفض تبقى البيانات القديمة.</div>
+              </div>
+            </div>
+          </div>
+
           <div class="col-md-6"><label class="form-label">السعر المتفق عليه (الإجمالي)</label><input type="number" id="cPrice" class="form-control num-dir"></div>
-          
+
           <div class="col-md-6">
             <label class="form-label">حالة الحجز</label>
             <select id="cStatus" class="form-select" onchange="onStatusChange()">
               <option value="تم الحجز والتعاقد">تم الحجز والتعاقد</option>
+              <option value="هيحجز">هيحجز (قيد الحجز - يتحول للمشرف)</option>
               <option value="حجز مبدئي">حجز مبدئي</option>
               <option value="بيفكر">بيفكر</option>
               <option value="هياجل لشهر تاني">هياجل لشهر تاني</option>
@@ -313,9 +728,12 @@
             </select>
           </div>
 
-          <!-- تفاصيل التأجيل لشهر آخر -->
+          <div class="col-md-12 hidden" id="willBookInfo">
+            <div class="alert py-2 m-0" style="background:#e6dcfb;color:#432874;"><i class="fa-solid fa-hourglass-half me-1"></i> العميل ده هيظهر في <b>شاشة قيد الحجز</b> عند المشرف علشان يكمل معاه، وهيوصله تنبيه تلقائي.</div>
+          </div>
+
           <div class="col-md-12 hidden" id="postponeMonthDiv">
-            <label class="form-label text-primary fw-bold">اختر الشهر المؤجل إليه العميل (سيتم توجيهه للمتابعة تلقائياً):</label>
+            <label class="form-label text-primary fw-bold">اختر الشهر المؤجل إليه العميل:</label>
             <select id="cPostponeMonth" class="form-select border-primary">
               <option value="يناير">يناير</option>
               <option value="فبراير">فبراير</option>
@@ -332,10 +750,9 @@
             </select>
           </div>
 
-          <!-- تفاصيل الدفع والآجل عند الحجز والتسديد -->
           <div class="col-md-12 hidden" id="paymentSectionDiv">
             <div class="p-3 bg-light border border-success rounded">
-              <h6 class="text-success fw-bold"><i class="fa-solid fa-money-check-dollar me-1"></i> تفاصيل الدفع والخزنة (تم الحجز والتعاقد)</h6>
+              <h6 class="text-success fw-bold"><i class="fa-solid fa-money-check-dollar me-1"></i> تفاصيل الدفع والخزنة</h6>
               <div class="row g-2">
                 <div class="col-md-6">
                   <label class="form-label">المبلغ المدفوع حالياً (في الخزنة)</label>
@@ -343,7 +760,6 @@
                 </div>
                 <div class="col-md-6">
                   <label class="form-label">ملاحظات الدفع والأقساط</label>
-
                   <input type="text" id="cPaymentNotes" class="form-control" placeholder="مثال: دفع 10000 والباقي على دفعين">
                 </div>
               </div>
@@ -358,20 +774,23 @@
           <div class="col-md-12 border-top pt-2 mt-2">
             <div class="form-check form-switch">
               <input class="form-check-input" type="checkbox" id="cIsFollowup" onchange="toggleFollowupFields()">
-              <label class="form-check-label fw-bold text-primary" for="cIsFollowup">إضافة لصفحة المتابعة</label>
+              <label class="form-check-label fw-bold text-primary" for="cIsFollowup">إضافة لصفحة المتابعة (تنبيه فوري في الموعد)</label>
             </div>
           </div>
 
           <div id="followupFields" class="row g-2 m-0 p-0 hidden">
-            <div class="col-md-6"><label class="form-label">تاريخ المتابعة</label><input type="date" id="cFollowupDate" class="form-control" onchange="updateFollowupDayName()"></div>
-            <div class="col-md-6"><label class="form-label">يوم المتابعة</label><input type="text" id="cFollowupDay" class="form-control bg-light" readonly></div>
+            <div class="col-md-4"><label class="form-label">تاريخ المتابعة</label><input type="date" id="cFollowupDate" class="form-control" onchange="updateFollowupDayName()"></div>
+            <div class="col-md-4"><label class="form-label">وقت المتابعة</label><input type="time" id="cFollowupTime" class="form-control num-dir"></div>
+            <div class="col-md-4"><label class="form-label">يوم المتابعة</label><input type="text" id="cFollowupDay" class="form-control bg-light" readonly></div>
           </div>
 
-          <div class="col-md-6"><label class="form-label">الفيدباك 1</label><input type="text" id="cFb1" class="form-control"></div>
-          <div class="col-md-6"><label class="form-label">شرح وتحديث المتابعة (الفيدباك 2)</label><input type="text" id="cFb2" class="form-control" placeholder="ماذا حدث عند المتابعة بتاريخ اليوم..."></div>
+          <div class="col-md-4"><label class="form-label">الفيدباك 1</label><input type="text" id="cFb1" class="form-control"></div>
+          <div class="col-md-4"><label class="form-label">شرح وتحديث المتابعة (الفيدباك 2)</label><input type="text" id="cFb2" class="form-control" placeholder="ماذا حدث عند المتابعة بتاريخ اليوم..."></div>
+          <div class="col-md-4"><label class="form-label">الفيدباك 3</label><input type="text" id="cFb3" class="form-control"></div>
         </div>
       </div>
       <div class="modal-footer">
+        <button type="button" class="btn btn-outline-dark me-auto" id="modalPrintBtn" onclick="printClient(document.getElementById('cId').value)"><i class="fa-solid fa-print me-1"></i> طباعة الاستمارة</button>
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
         <button type="button" class="btn btn-success" onclick="saveClient()">حفظ البيانات والتحديث</button>
       </div>
@@ -380,23 +799,292 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script>
-  const API = "https://script.google.com/macros/s/AKfycbwBauOQ8iVngM2szUi00UVqL7A-KoaplLcRk__SSKyF4cAD3SeS6Mq7cRY0nEIx1i3sQA/exec";
+  const API = "https://script.google.com/macros/s/AKfycbyfQoTc_HpVT6lK65Iv8poZ6ifMypZOyXG2ld3meBHJQXBJGkSLyOSD_Hf2Sn6yY33HDw/exec";
+  const COMPANY_NAME = "شركة السياحة"; // غيّر الاسم ده لاسم شركتك (بيظهر في الاستمارة المطبوعة)
 
   let currUser = null;
-  let allData = { clients: [], omraPrograms: [], turkeyPrograms: [] };
-  let bsClientModal, bsNotifModal;
+  let allData = { clients: [], omraPrograms: [], turkeyPrograms: [], adminNotes: [], programs: [], tripRequests: [], settings: {} };
+  let bsClientModal, bsNotifModal, bsSendNoteModal, bsAdminNotesModal, bsStatDrillModal;
   const daysArabic = ["الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
   const monthArabic = ["يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"];
+
+  // =================== التحميل والأخطاء ===================
+  class ApiError extends Error {}
+  let loadingCount = 0;
+  function showLoading(text) {
+    loadingCount++;
+    document.getElementById("loadingText").innerText = text || "جاري التحميل...";
+    document.getElementById("loadingOverlay").classList.remove("hidden");
+  }
+  function hideLoading() {
+    loadingCount = Math.max(0, loadingCount - 1);
+    if (loadingCount === 0) document.getElementById("loadingOverlay").classList.add("hidden");
+  }
+  function showError(msg, retryFn) {
+    document.getElementById("errorBannerText").innerText = msg;
+    const rb = document.getElementById("errorRetryBtn");
+    if (retryFn) { rb.classList.remove("hidden"); rb.onclick = () => { hideError(); retryFn(); }; }
+    else { rb.classList.add("hidden"); rb.onclick = null; }
+    document.getElementById("errorBanner").classList.remove("hidden");
+  }
+  function hideError() { document.getElementById("errorBanner").classList.add("hidden"); }
+
+  let serverOutdated = false;
+  const OUTDATED_MSG = "النسخة المنشورة من Apps Script قديمة (ناقصها الكود الجديد). في Apps Script: Deploy ← Manage deployments ← اضغط القلم (Edit) ← Version: New version ← Deploy. بعدها اعمل تحديث للصفحة (Ctrl+F5).";
+
+  function getUrl(params) { return API + "?" + new URLSearchParams(params).toString(); }
+
+  async function fetchJson(url, init) {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 45000);
+    try {
+      const res = await fetch(url, Object.assign({ signal: ctrl.signal }, init || {}));
+      if (!res.ok) throw new ApiError("السيرفر رد بكود خطأ " + res.status + " (راجع نشر Apps Script كـ Web App وإتاحته لـ Anyone)");
+      const text = await res.text();
+      try { return JSON.parse(text); }
+      catch (e) {
+        const snippet = text.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 140);
+        throw new ApiError("السيرفر رجّع رد غير مفهوم. غالباً صلاحيات النشر (Anyone) أو الرابط غلط أو خطأ في كود Apps Script. الرد: " + snippet);
+      }
+    } catch (e) {
+      if (e instanceof ApiError) throw e;
+      if (e.name === "AbortError") throw new ApiError("انتهت مهلة الاتصال بالسيرفر (أكتر من 45 ثانية). حاول تاني.");
+      const ne = new Error(e.message || String(e));
+      ne.network = true;
+      throw ne;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  // تشخيص سبب فشل الاتصال
+  async function diagnose(e) {
+    try {
+      const d = await fetchJson(API + "?action=ping");
+      if (d && d.pong) return "السيرفر شغال لكن طلب الحفظ اتمنع من المتصفح (جرّب تعطّل إضافات حظر الإعلانات/الخصوصية أو متصفح تاني). (" + e.message + ")";
+      if (d && String(d.message || "").indexOf("Action not found") === 0) return OUTDATED_MSG;
+      return "رد غير متوقع من السيرفر: " + JSON.stringify(d).slice(0, 120);
+    } catch (e2) {
+      if (e2 instanceof ApiError) return e2.message;
+      return "تعذر الاتصال بالسيرفر: تأكد من الإنترنت ومن أن رابط Apps Script صحيح ومنشور للجميع (Anyone). (" + (e2.message || e2) + ")";
+    }
+  }
+
+  async function apiCall(params, post) {
+    if (post && serverOutdated && params.action !== "login") throw new ApiError(OUTDATED_MSG);
+    let data;
+    try {
+      if (post) {
+        try {
+          data = await fetchJson(API, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(params) });
+        } catch (e) {
+          if (!e.network) throw e;
+          // لو الـ POST فشل جرّب نفس الطلب كـ GET
+          const url = getUrl(params);
+          if (url.length > 7500) throw e;
+          data = await fetchJson(url);
+        }
+      } else {
+        data = await fetchJson(getUrl(params));
+      }
+    } catch (e) {
+      if (e instanceof ApiError) throw e;
+      throw new ApiError(await diagnose(e));
+    }
+    if (data && data.status === "error") {
+      const m = String(data.message || "");
+      throw new ApiError(m.indexOf("Action not found") === 0 ? OUTDATED_MSG : (m || "خطأ غير معروف من السيرفر"));
+    }
+    return data;
+  }
+
+  async function api(params, opts = {}) {
+    const { post = false, silent = false, label = "جاري التحميل..." } = opts;
+    if (!silent) showLoading(label);
+    try {
+      return await apiCall(params, post);
+    } finally {
+      if (!silent) hideLoading();
+    }
+  }
+
+  // =================== مخططات تفاصيل الرحلات ===================
+  const AIRLINES_UMRA = ["الخطوط الجوية السعودية", "مصر للطيران", "كايرو اير", "النيل", "نسما"];
+  const AIRPORTS = ["مطار جدة", "مطار المدينة"];
+  const SCHEMAS = {
+    umra: [
+      { k: "name", l: "اسم البرنامج", t: "text" },
+      { k: "departDate", l: "تاريخ السفر", t: "date" },
+      { k: "returnDate", l: "تاريخ العودة", t: "date" },
+      { k: "makkahNights", l: "عدد ليالي مكة", t: "number" },
+      { k: "madinahNights", l: "عدد ليالي المدينة", t: "number" },
+      { k: "makkahHotel", l: "اسم فندق مكة", t: "text" },
+      { k: "madinahHotel", l: "اسم فندق المدينة", t: "text" },
+      { k: "price", l: "سعر البرنامج (للفرد)", t: "number" },
+      { k: "transport", l: "وسيلة السفر", t: "select", o: ["طيران", "بري"] },
+      { k: "airline", l: "شركة الطيران", t: "select", o: AIRLINES_UMRA, showIf: d => d.transport === "طيران" },
+      { t: "route", l: "خط السير", showIf: d => d.transport === "طيران" },
+      { k: "rawdaFree", l: "حجز الروضة مجاني؟", t: "select", o: ["نعم", "لا"] },
+      { k: "payDiff", l: "في حالة تغير أسعار الطيران أو الفنادق هل العميل مطالب بدفع الفرق؟", t: "select", o: ["نعم", "لا"], wide: true },
+      { t: "checks", l: "السعر شامل", o: [["visa", "التأشيرة"], ["barcode", "الباركود"], ["ticket", "تذكرة الطيران"], ["tours", "المزارات"], ["localTransport", "المواصلات الداخلية من وإلى الحرم"], ["lodging", "السكن"]] }
+    ],
+    foreign: [
+      { k: "name", l: "اسم البرنامج", t: "text" },
+      { k: "country", l: "الدولة", t: "text" },
+      { k: "cities", l: "المدن / خط السير", t: "text" },
+      { k: "departDate", l: "تاريخ السفر", t: "date" },
+      { k: "returnDate", l: "تاريخ العودة", t: "date" },
+      { k: "nights", l: "عدد الليالي", t: "number" },
+      { k: "hotel", l: "اسم الفندق", t: "text" },
+      { k: "hotelStars", l: "تصنيف الفندق", t: "select", o: ["3 نجوم", "4 نجوم", "5 نجوم"] },
+      { k: "price", l: "سعر البرنامج (للفرد)", t: "number" },
+      { k: "transport", l: "وسيلة السفر", t: "select", o: ["طيران", "بري", "بحري"] },
+      { k: "airline", l: "شركة الطيران", t: "text", showIf: d => d.transport === "طيران" },
+      { k: "payDiff", l: "في حالة تغير الأسعار هل العميل مطالب بدفع الفرق؟", t: "select", o: ["نعم", "لا"], wide: true },
+      { t: "checks", l: "السعر شامل", o: [["visa", "التأشيرة"], ["ticket", "تذكرة الطيران"], ["hotel", "الإقامة"], ["breakfast", "الإفطار"], ["tours", "الجولات والمزارات"], ["transfers", "الانتقالات"], ["guide", "مرشد سياحي"]] },
+      { k: "notes", l: "ملاحظات إضافية", t: "textarea", wide: true }
+    ],
+    internal: [
+      { k: "name", l: "اسم البرنامج", t: "text" },
+      { k: "destination", l: "الوجهة", t: "text" },
+      { k: "departDate", l: "تاريخ السفر", t: "date" },
+      { k: "returnDate", l: "تاريخ العودة", t: "date" },
+      { k: "nights", l: "عدد الليالي", t: "number" },
+      { k: "hotel", l: "اسم الفندق", t: "text" },
+      { k: "price", l: "سعر البرنامج (للفرد)", t: "number" },
+      { k: "transport", l: "وسيلة السفر", t: "select", o: ["أتوبيس", "طيران", "قطار", "سيارة خاصة"] },
+      { k: "payDiff", l: "في حالة تغير الأسعار هل العميل مطالب بدفع الفرق؟", t: "select", o: ["نعم", "لا"], wide: true },
+      { t: "checks", l: "السعر شامل", o: [["hotel", "الإقامة"], ["meals", "الوجبات"], ["transport", "المواصلات"], ["tours", "الجولات والمزارات"], ["guide", "مرشد سياحي"]] },
+      { k: "notes", l: "ملاحظات إضافية", t: "textarea", wide: true }
+    ]
+  };
+  function schemaFor(cat) { return cat === "عمرة" ? "umra" : (cat === "رحلات داخلية" ? "internal" : "foreign"); }
+
+  const tripCtx = {};
+
+  function renderTripForm(cid, cat, vals, readonly) {
+    const v = JSON.parse(JSON.stringify(vals || {}));
+    if (cat === "تركيا" && !v.country) v.country = "تركيا";
+    tripCtx[cid] = { cat: cat, readonly: readonly, vals: v };
+    const el = document.getElementById(cid);
+    if (!el) return;
+    const dis = readonly ? "disabled" : "";
+    let html = '<div class="row g-2 ' + (readonly ? "trip-readonly" : "") + '">';
+    SCHEMAS[schemaFor(cat)].forEach(f => {
+      if (f.showIf && !f.showIf(v)) return;
+      const col = f.wide ? "col-md-12" : "col-md-4";
+      if (f.t === "select") {
+        const onch = f.k === "transport" ? ` onchange="tripRefresh('${cid}')"` : "";
+        html += `<div class="${col}"><label class="form-label small fw-bold">${esc(f.l)}</label><select class="form-select form-select-sm" data-k="${f.k}" ${dis}${onch}><option value="">— اختر —</option>${f.o.map(o => `<option value="${esc(o)}" ${v[f.k] === o ? "selected" : ""}>${esc(o)}</option>`).join("")}</select></div>`;
+      } else if (f.t === "textarea") {
+        html += `<div class="${col}"><label class="form-label small fw-bold">${esc(f.l)}</label><textarea class="form-control form-control-sm" rows="2" data-k="${f.k}" ${dis}>${esc(v[f.k] || "")}</textarea></div>`;
+      } else if (f.t === "route") {
+        const opts = (sel) => AIRPORTS.map(a => `<option value="${a}" ${sel === a ? "selected" : ""}>${a}</option>`).join("");
+        html += `<div class="col-md-12"><label class="form-label small fw-bold">${esc(f.l)}</label><div class="row g-2">
+          <div class="col-md-3"><input type="text" class="form-control form-control-sm bg-light" data-k="r1" value="القاهرة" readonly></div>
+          <div class="col-md-3"><select class="form-select form-select-sm" data-k="r2" ${dis}><option value="">— اختر (جدة / المدينة) —</option>${opts(v.r2)}</select></div>
+          <div class="col-md-3"><select class="form-select form-select-sm" data-k="r3" ${dis}><option value="">— اختر (جدة / المدينة) —</option>${opts(v.r3)}</select></div>
+          <div class="col-md-3"><input type="text" class="form-control form-control-sm bg-light" data-k="r4" value="القاهرة" readonly></div>
+        </div></div>`;
+      } else if (f.t === "checks") {
+        html += `<div class="col-md-12"><label class="form-label small fw-bold">${esc(f.l)}</label><div class="d-flex flex-wrap gap-3">${f.o.map(o => `<div class="form-check"><input class="form-check-input" type="checkbox" data-k="inc_${o[0]}" id="${cid}_inc_${o[0]}" ${v["inc_" + o[0]] ? "checked" : ""} ${dis}><label class="form-check-label small" for="${cid}_inc_${o[0]}">${esc(o[1])}</label></div>`).join("")}</div></div>`;
+      } else {
+        html += `<div class="${col}"><label class="form-label small fw-bold">${esc(f.l)}</label><input type="${f.t}" class="form-control form-control-sm ${f.t === "number" ? "num-dir" : ""}" data-k="${f.k}" value="${esc(v[f.k] || "")}" ${f.t === "number" ? 'min="0"' : ""} ${dis}></div>`;
+      }
+    });
+    html += "</div>";
+    el.innerHTML = html;
+  }
+
+  function readTripForm(cid) {
+    const ctx = tripCtx[cid] || { vals: {} };
+    const out = Object.assign({}, ctx.vals || {});
+    const el = document.getElementById(cid);
+    if (!el) return out;
+    el.querySelectorAll("[data-k]").forEach(inp => {
+      out[inp.dataset.k] = inp.type === "checkbox" ? inp.checked : inp.value;
+    });
+    return out;
+  }
+
+  function tripRefresh(cid) {
+    const ctx = tripCtx[cid];
+    if (!ctx) return;
+    const merged = readTripForm(cid);
+    renderTripForm(cid, ctx.cat, merged, ctx.readonly);
+  }
+
+  function flatFields(cat, vals) {
+    const out = [];
+    SCHEMAS[schemaFor(cat)].forEach(f => {
+      if (f.showIf && !f.showIf(vals || {})) return;
+      if (f.t === "route") {
+        out.push({ k: "r2", l: "خط السير (المحطة الثانية)", t: "text" });
+        out.push({ k: "r3", l: "خط السير (المحطة الثالثة)", t: "text" });
+      } else if (f.t === "checks") {
+        f.o.forEach(o => out.push({ k: "inc_" + o[0], l: f.l + ": " + o[1], t: "bool" }));
+      } else out.push({ k: f.k, l: f.l, t: f.t });
+    });
+    return out;
+  }
+
+  function fmtVal(f, val) {
+    if (f.t === "bool") return val ? "نعم" : "لا";
+    return (val === undefined || val === null || val === "") ? "—" : String(val);
+  }
+
+  function diffTrip(cat, a, b) {
+    a = a || {}; b = b || {};
+    const fields = flatFields(cat, Object.assign({}, a, b));
+    const diffs = [];
+    fields.forEach(f => {
+      const x = f.t === "bool" ? !!a[f.k] : String(a[f.k] == null ? "" : a[f.k]);
+      const y = f.t === "bool" ? !!b[f.k] : String(b[f.k] == null ? "" : b[f.k]);
+      if (x !== y) diffs.push({ l: f.l, from: fmtVal(f, a[f.k]), to: fmtVal(f, b[f.k]) });
+    });
+    return diffs;
+  }
+
+  function tripSummaryRows(cat, d) {
+    d = d || {};
+    const rows = [];
+    SCHEMAS[schemaFor(cat)].forEach(f => {
+      if (f.showIf && !f.showIf(d)) return;
+      if (f.t === "route") {
+        rows.push({ l: f.l, v: esc(["القاهرة", d.r2, d.r3, "القاهرة"].map(x => x || "—").join("  ➜  ")) });
+      } else if (f.t === "checks") {
+        rows.push({ l: f.l, v: f.o.map(o => (d["inc_" + o[0]] ? "✔ " : "✘ ") + esc(o[1])).join("&nbsp;&nbsp;&nbsp;") });
+      } else {
+        rows.push({ l: f.l, v: esc(d[f.k] === undefined || d[f.k] === "" ? "—" : d[f.k]) });
+      }
+    });
+    return rows;
+  }
+
+  // =================== بداية التشغيل ===================
+  let autoTimersStarted = false;
+  let reopenDrill = null;
 
   document.addEventListener("DOMContentLoaded", () => {
     bsClientModal = new bootstrap.Modal(document.getElementById('clientModal'));
     bsNotifModal = new bootstrap.Modal(document.getElementById('notifModal'));
+    bsSendNoteModal = new bootstrap.Modal(document.getElementById('sendNoteModal'));
+    bsAdminNotesModal = new bootstrap.Modal(document.getElementById('adminNotesModal'));
+    bsStatDrillModal = new bootstrap.Modal(document.getElementById('statDrillModal'));
 
-    // تسجيل Service Worker + تجهيز زر التثبيت
+    document.getElementById('sendNoteModal').addEventListener('hidden.bs.modal', () => {
+      if (reopenDrill) { const c = reopenDrill; reopenDrill = null; openStatDrilldown(c); }
+    });
+    document.getElementById('clientModal').addEventListener('hidden.bs.modal', () => {
+      completionFor = null;
+      document.getElementById("completionBanner").classList.add("hidden");
+    });
+
     if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
     if (isIOS && !isStandalone) toggleInstallBtns(true);
-    
+
     const savedUser = localStorage.getItem("crm_user");
     if (savedUser) {
       try {
@@ -408,23 +1096,56 @@
     }
   });
 
+  function getRoleLabel(role) {
+    if (role === "admin") return "مدير عام النظام";
+    if (role === "tech_manager") return "المدير الفني للسيستم";
+    if (role === "followup_manager") return "مسؤول المتابعة والإشراف";
+    return "موظف مبيعات";
+  }
+
+  function isManagerRole(r) {
+    r = r || (currUser && currUser.role);
+    return r === "admin" || r === "tech_manager" || r === "followup_manager";
+  }
+
+  function isMine(c) {
+    if (!currUser) return false;
+    const code = (currUser.code || "").toLowerCase();
+    const un = (currUser.username || "").toLowerCase();
+    const nm = (currUser.name || "").toLowerCase();
+    const ac = (c.agentCode || "").toLowerCase();
+    const an = (c.agentName || "").toLowerCase();
+    return (code && ac === code) || (an && (an === un || an === nm));
+  }
+
   function initAppView() {
     if (!currUser) return;
     document.getElementById("loginBox").classList.add("hidden");
     document.getElementById("app").classList.remove("hidden");
     document.getElementById("floatingAddBtn")?.classList.remove("hidden");
-    
+
     const name = currUser.name || currUser.username || "مستخدم";
     const role = currUser.role || "mowazaf";
-    
+
     document.getElementById("userNameTxt").innerText = name;
-    document.getElementById("userRoleTxt").innerText = (role === "admin") ? "مدير النظام" : `الموظف: ${name}`;
-    
-    if (role === "admin") {
-      document.querySelectorAll(".admin-only").forEach(el => el.classList.remove("hidden"));
+    document.getElementById("userRoleTxt").innerText = getRoleLabel(role);
+
+    if (isManagerRole(role)) {
+      document.querySelectorAll(".admin-or-tech").forEach(el => el.classList.remove("hidden"));
     }
-    
+    if (role === "tech_manager") {
+      document.querySelectorAll(".tech-only").forEach(el => el.classList.remove("hidden"));
+    }
+
+    onPbCategoryChange();
     refreshData();
+
+    if (!autoTimersStarted) {
+      autoTimersStarted = true;
+      // فحص مواعيد المتابعة كل 30 ثانية + تحديث البيانات بصمت كل دقيقتين
+      setInterval(() => { if (currUser) checkTodayNotifications(false); }, 30000);
+      setInterval(() => { if (currUser && !document.querySelector('.modal.show')) refreshData(true); }, 120000);
+    }
   }
 
   async function login() {
@@ -436,21 +1157,14 @@
       errDiv.classList.remove("hidden");
       return;
     }
-
     try {
-      const res = await fetch(`${API}?action=login&username=${encodeURIComponent(u)}&password=${encodeURIComponent(p)}`);
-      const data = await res.json();
-      if (data.status === "success") {
-        currUser = data.user;
-        localStorage.setItem("crm_user", JSON.stringify(currUser));
-        errDiv.classList.add("hidden");
-        initAppView();
-      } else {
-        errDiv.innerText = data.message || "بيانات الدخول غير صحيحة";
-        errDiv.classList.remove("hidden");
-      }
+      const data = await api({ action: "login", username: u, password: p }, { post: true, label: "جاري تسجيل الدخول..." });
+      currUser = data.user;
+      localStorage.setItem("crm_user", JSON.stringify(currUser));
+      errDiv.classList.add("hidden");
+      initAppView();
     } catch (err) {
-      errDiv.innerText = "تعذر الاتصال بالسيرفر";
+      errDiv.innerText = err.message;
       errDiv.classList.remove("hidden");
     }
   }
@@ -460,57 +1174,95 @@
     location.reload();
   }
 
-  async function refreshData() {
+  async function refreshData(silent) {
     try {
       const role = currUser?.role || "mowazaf";
-      const code = currUser?.code || "";
-      const username = currUser?.username || currUser?.name || "";
+      const data = await api({
+        action: "getData",
+        role: role,
+        code: currUser?.code || "",
+        username: currUser?.username || currUser?.name || "",
+        name: currUser?.name || ""
+      }, { silent: !!silent, label: "جاري تحميل البيانات..." });
 
-      const url = `${API}?action=getData&role=${encodeURIComponent(role)}&code=${encodeURIComponent(code)}&username=${encodeURIComponent(username)}`;
-      const res = await fetch(url);
-      const data = await res.json();
-      
       allData = {
         clients: Array.isArray(data.clients) ? data.clients : [],
         omraPrograms: Array.isArray(data.omraPrograms) ? data.omraPrograms : [],
-        turkeyPrograms: Array.isArray(data.turkeyPrograms) ? data.turkeyPrograms : []
+        turkeyPrograms: Array.isArray(data.turkeyPrograms) ? data.turkeyPrograms : [],
+        adminNotes: Array.isArray(data.adminNotes) ? data.adminNotes : [],
+        programs: Array.isArray(data.programs) ? data.programs : [],
+        tripRequests: Array.isArray(data.tripRequests) ? data.tripRequests : [],
+        settings: data.settings || {}
       };
 
+      serverOutdated = !Array.isArray(data.programs);
+      if (serverOutdated) showError(OUTDATED_MSG);
+      else if (!silent) hideError();
       populateProgramsAndUsers();
       renderClients();
       renderFollowupClients();
+      renderPendingBooking();
+      renderRequests();
       renderFinance();
       renderStats();
+      renderAdminNotesBadge();
+      renderProgramsAdmin();
+      fillTargetInputs();
       checkTodayNotifications(false);
+
+      if (role === "tech_manager") fetchUsersList();
     } catch (err) {
       console.error("خطأ جلب البيانات:", err);
+      if (!silent) showError(err.message, () => refreshData());
     }
   }
 
   function populateProgramsAndUsers() {
     const pFilter = document.getElementById("statProgramFilter");
     if (pFilter) {
-      pFilter.innerHTML = '<option value="ALL">كل الرحلات والبرامج</option>';
-      allData.omraPrograms.forEach(p => pFilter.innerHTML += `<option value="${p}">عمرة: ${p}</option>`);
-      allData.turkeyPrograms.forEach(p => pFilter.innerHTML += `<option value="${p}">تركيا: ${p}</option>`);
+      const prev = pFilter.value;
+      let html = '<option value="ALL">كل الرحلات والبرامج</option>';
+      allData.omraPrograms.forEach(p => html += `<option value="${esc(p)}">عمرة: ${esc(p)}</option>`);
+      allData.turkeyPrograms.forEach(p => html += `<option value="${esc(p)}">تركيا: ${esc(p)}</option>`);
+      allData.programs.forEach(p => html += `<option value="${esc(p.name)}">${esc(p.category)}: ${esc(p.name)}</option>`);
+      pFilter.innerHTML = html;
+      if ([...pFilter.options].some(o => o.value === prev)) pFilter.value = prev;
     }
 
     const uFilter = document.getElementById("statUserFilter");
     if (uFilter) {
-      uFilter.innerHTML = '<option value="ALL">الكل (شامل)</option>';
+      const prev = uFilter.value;
+      let html = '<option value="ALL">الكل (شامل)</option>';
       const usersSet = new Set(allData.clients.map(c => c.agentName).filter(Boolean));
-      usersSet.forEach(u => uFilter.innerHTML += `<option value="${u}">${u}</option>`);
+      usersSet.forEach(u => html += `<option value="${esc(u)}">${esc(u)}</option>`);
+      uFilter.innerHTML = html;
+      if ([...uFilter.options].some(o => o.value === prev)) uFilter.value = prev;
+    }
+
+    const oBox = document.getElementById("omraProgList");
+    if (oBox) {
+      oBox.innerHTML = allData.omraPrograms.map(p => `
+        <div class="d-flex justify-content-between align-items-center bg-light p-2 mb-1 rounded">
+          <span>${esc(p)}</span>
+          <button onclick="deleteProgramByName(this)" data-name="${esc(p)}" data-type="عمرة" class="btn btn-sm btn-outline-danger"><i class="fa-solid fa-trash"></i></button>
+        </div>`).join("");
+    }
+
+    const tBox = document.getElementById("turkeyProgList");
+    if (tBox) {
+      tBox.innerHTML = allData.turkeyPrograms.map(p => `
+        <div class="d-flex justify-content-between align-items-center bg-light p-2 mb-1 rounded">
+          <span>${esc(p)}</span>
+          <button onclick="deleteProgramByName(this)" data-name="${esc(p)}" data-type="تركيا" class="btn btn-sm btn-outline-danger"><i class="fa-solid fa-trash"></i></button>
+        </div>`).join("");
     }
   }
 
-  // ===== أدوات مساعدة =====
-  let notifShownThisSession = false;
   let searchDates = [];
   let deferredInstall = null;
   const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
   const isStandalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
 
-  // تاريخ اليوم بتوقيت جهازك (مش UTC) علشان التنبيهات تظبط بعد منتصف الليل
   function localDateStr(d = new Date()) {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   }
@@ -519,7 +1271,6 @@
     return String(s == null ? '' : s).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
   }
 
-  // توحيد رقم الموبايل: يصلّح الصفر الناقص (جوجل شيت بيشيله) والأرقام العربية والمسافات
   function normalizePhone(raw) {
     let s = String(raw == null ? '' : raw)
       .replace(/[\u0660-\u0669]/g, d => d.charCodeAt(0) - 0x0660)
@@ -548,38 +1299,152 @@
       `<a href="https://wa.me/${p.intl}" target="_blank" rel="noopener" class="btn btn-sm action-btn-sm text-white" style="background-color:#25D366;border:none;" title="واتساب"><i class="fa-brands fa-whatsapp"></i></a>`;
   }
 
-  // ===== تثبيت التطبيق =====
-  window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredInstall = e; toggleInstallBtns(true); });
-  window.addEventListener('appinstalled', () => toggleInstallBtns(false));
-  function toggleInstallBtns(show) {
-    document.querySelectorAll('.install-btn').forEach(b => b.classList.toggle('hidden', !show));
+  // لون مستقل لكل حالة حجز (bg = لون الصف، badge = لون الشارة، tx = لون النص على الشارة)
+  const STATUS_STYLES = {
+    "تم الحجز والتعاقد": { bg: "#c6f0d2", badge: "#198754", tx: "#fff" },
+    "هيحجز":             { bg: "#e4d8fb", badge: "#6f42c1", tx: "#fff" },
+    "حجز مبدئي":         { bg: "#cfe5ff", badge: "#0d6efd", tx: "#fff" },
+    "بيفكر":             { bg: "#fff2b3", badge: "#e0a800", tx: "#222" },
+    "هياجل لشهر تاني":   { bg: "#e3e5e8", badge: "#6c757d", tx: "#fff" },
+    "متابعه واتساب":     { bg: "#c8f2ec", badge: "#17a2a2", tx: "#fff" },
+    "مش هيحجز":          { bg: "#ffcfcf", badge: "#dc3545", tx: "#fff" },
+    "قفل السكه في وشي":  { bg: "#e6b8b8", badge: "#7b1e1e", tx: "#fff" },
+    "مش بيرد":           { bg: "#ffdcb8", badge: "#fd7e14", tx: "#222" }
+  };
+  const STATUS_CUSTOM = { bg: "#f6d5ea", badge: "#d63384", tx: "#fff" };
+
+  function statusStyle(st) {
+    return STATUS_STYLES[String(st || "").trim()] || STATUS_CUSTOM;
   }
-  async function installApp() {
-    if (deferredInstall) {
-      deferredInstall.prompt();
-      await deferredInstall.userChoice;
-      deferredInstall = null;
-      toggleInstallBtns(false);
-    } else if (isIOS) {
-      alert('علشان تثبّت التطبيق على الآيفون:\n1) اضغط زر المشاركة (Share) في سفاري\n2) اختار «إضافة إلى الشاشة الرئيسية»');
-    }
+  function statusRowAttr(st) {
+    if (!st) return "";
+    return `class="st-row" style="--rowbg:${statusStyle(st).bg}"`;
+  }
+  function statusBadge(status) {
+    const s = statusStyle(status);
+    const label = status === "هيحجز" ? "هيحجز (قيد الحجز)" : status;
+    return `<span class="badge" style="background:${s.badge};color:${s.tx}">${esc(label)}</span>`;
+  }
+  function renderStatusLegend() {
+    const box = document.getElementById("statusLegend");
+    if (!box || box.dataset.done) return;
+    box.dataset.done = "1";
+    box.innerHTML = '<small class="text-muted align-self-center">ألوان الحالات:</small>' +
+      Object.keys(STATUS_STYLES).map(k => `<span class="badge" style="background:${STATUS_STYLES[k].bg};color:#222;border:2px solid ${STATUS_STYLES[k].badge}">${esc(k)}</span>`).join("") +
+      `<span class="badge" style="background:${STATUS_CUSTOM.bg};color:#222;border:2px solid ${STATUS_CUSTOM.badge}">حالة مخصصة</span>`;
   }
 
-  // ===== المتابعات والتنبيهات =====
+  function tripShort(c) {
+    const d = c.tripDetails;
+    if (!d) return "";
+    const parts = [];
+    if (d.departDate) parts.push("سفر: " + d.departDate);
+    if (d.returnDate) parts.push("عودة: " + d.returnDate);
+    return parts.length ? `<br><small class="text-muted num-dir">${esc(parts.join(" | "))}</small>` : "";
+  }
+
+  function pendingRequestFor(clientId) {
+    return allData.tripRequests.find(r => String(r.clientId) === String(clientId) && r.status === "pending");
+  }
+
+  function renderClients() {
+    renderStatusLegend();
+    const tbody = document.getElementById("clientsTable");
+    if (!tbody) return;
+    const search = document.getElementById("searchInput")?.value.toLowerCase().trim() || "";
+    const dueMap = new Map(getDueClients().map(d => [String(d.c.id), d]));
+    const role = currUser?.role || "mowazaf";
+    const isManager = isManagerRole(role);
+
+    const filtered = allData.clients.filter(c => {
+      const fullText = `${c.name || ''} ${c.phone || ''} ${normalizePhone(c.phone).local} ${c.programName || ''} ${c.status || ''} ${c.agentName || ''}`.toLowerCase();
+      if (!fullText.includes(search)) return false;
+      if (searchDates.length > 0 && !searchDates.includes(c.createdDate)) return false;
+      return true;
+    });
+
+    if (filtered.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-3">لا توجد سجلات</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = filtered.map((c, idx) => {
+      const p = normalizePhone(c.phone);
+      const progDisplay = c.programCategory === "تركيا"
+        ? `تركيا: ${esc(c.programName)}${c.turkeySubName ? ` (${esc(c.turkeySubName)})` : ''}`
+        : `${esc(c.programCategory || 'عمرة')}: ${esc(c.programName)}`;
+      const due = dueMap.get(String(c.id));
+
+      let reviewBadge = '';
+      if (c.reviewedByFollowup) {
+        const who = c.reviewedBy ? ` (${esc(c.reviewedBy)})` : '';
+        if (role === "mowazaf") {
+          reviewBadge = `<br><span class="badge bg-warning text-dark mt-1"><i class="fa-solid fa-user-check me-1"></i>تم تعديل البيانات بواسطة مسؤول المتابعة${who}</span>`;
+        } else {
+          reviewBadge = `<br><span class="badge bg-success mt-1"><i class="fa-solid fa-circle-check me-1"></i>تمت مراجعة هذا من قبل مسؤول المتابعة${who}</span>`;
+        }
+      }
+      const pend = pendingRequestFor(c.id) ? `<br><span class="badge bg-info text-dark mt-1"><i class="fa-solid fa-hourglass-half me-1"></i>طلب تعديل رحلة معلّق</span>` : '';
+
+      let managerActionBtn = '';
+      if (isManager) {
+        managerActionBtn = `<button onclick="openSendNoteModal('${esc(c.id)}')" class="btn btn-sm btn-outline-info action-btn-sm" title="إرسال تنبيه للموظف"><i class="fa-solid fa-paper-plane"></i></button>`;
+      }
+
+      const fbs = `<small><strong>ف1:</strong> ${esc(c.fb1) || '-'}<br><strong>متابعة:</strong> ${esc(c.fb2) || '-'}<br><strong>ف3:</strong> ${esc(c.fb3) || '-'}</small>`;
+      const rowCls = getStatusRowClass(c.status);
+
+      return `
+        <tr ${statusRowAttr(c.status)}>
+          <td class="fw-bold num-dir">${idx + 1}</td>
+          <td><strong>${esc(c.name)}</strong><br><small class="text-muted num-dir">${esc(c.createdDate)}</small></td>
+          <td>
+            <div class="num-dir fw-bold">${esc(p.local)}</div>
+            <div>${contactButtons(c.phone)}</div>
+          </td>
+          <td>${progDisplay}${tripShort(c)}</td>
+          <td><span class="num-dir">${esc(c.members || 1)}</span> أفراد<br><small class="text-success fw-bold num-dir">${esc(c.price || 0)} ج.م</small></td>
+          <td>${statusBadge(c.status)}${due ? '<br>' + dueLabel(due) : ''}${reviewBadge}${pend}</td>
+          <td>${fbs}</td>
+          <td><small class="fw-bold text-primary">${esc(c.agentName)}</small></td>
+          <td class="text-nowrap">
+            <button onclick="editClient('${esc(c.id)}')" class="btn btn-sm btn-outline-dark action-btn-sm" title="تعديل"><i class="fa-solid fa-pen"></i></button>
+            <button onclick="printClient('${esc(c.id)}')" class="btn btn-sm btn-outline-secondary action-btn-sm" title="طباعة الاستمارة"><i class="fa-solid fa-print"></i></button>
+            ${managerActionBtn}
+            <button onclick="deleteClient('${esc(c.id)}')" class="btn btn-sm btn-outline-danger action-btn-sm" title="حذف"><i class="fa-solid fa-trash"></i></button>
+          </td>
+        </tr>
+      `;
+    }).join("");
+  }
+
+  // =================== المتابعات والتنبيهات ===================
+  function followupDateTime(c) {
+    if (!c.followupDate) return null;
+    return new Date(`${c.followupDate}T${c.followupTime || '00:00'}:00`);
+  }
+
   function getDueClients() {
-    const today = localDateStr();
-    const monthName = monthArabic[new Date().getMonth()];
+    const now = new Date();
+    const today = localDateStr(now);
+    const monthName = monthArabic[now.getMonth()];
     const list = [];
     allData.clients.forEach(c => {
-      if (c.isFollowup && c.followupDate && c.followupDate <= today) {
-        const days = Math.round((new Date(today + 'T00:00:00') - new Date(c.followupDate + 'T00:00:00')) / 86400000);
-        list.push({ c, kind: days === 0 ? 'today' : 'overdue', days });
-      } else if (c.status === "هياجل لشهر تاني" && c.postponeDate === monthName) {
-        list.push({ c, kind: 'month', days: 0 });
+      if (!isMine(c)) return;
+      if (c.isFollowup && c.followupDate) {
+        const dt = followupDateTime(c);
+        if (dt && dt <= now) {
+          const days = Math.round((new Date(today + 'T00:00:00') - new Date(c.followupDate + 'T00:00:00')) / 86400000);
+          list.push({ c, kind: days <= 0 ? 'today' : 'overdue', days: Math.max(days, 0), dt });
+          return;
+        }
+      }
+      if (c.status === "هياجل لشهر تاني" && c.postponeDate === monthName) {
+        list.push({ c, kind: 'month', days: 0, dt: now });
       }
     });
     const order = { overdue: 0, today: 1, month: 2 };
-    list.sort((x, y) => order[x.kind] - order[y.kind]);
+    list.sort((x, y) => (order[x.kind] - order[y.kind]) || (x.dt - y.dt));
     return list;
   }
 
@@ -587,6 +1452,31 @@
     if (d.kind === 'today') return '<span class="badge bg-danger">متابعة اليوم</span>';
     if (d.kind === 'overdue') return `<span class="badge bg-dark">متأخرة ${d.days} يوم</span>`;
     return '<span class="badge bg-secondary">مؤجل لهذا الشهر</span>';
+  }
+
+  const notifiedIds = new Set();
+
+  function beep() {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const o = ctx.createOscillator(); const g = ctx.createGain();
+      o.connect(g); g.connect(ctx.destination);
+      o.frequency.value = 880; g.gain.value = 0.15;
+      o.start(); setTimeout(() => { o.stop(); ctx.close(); }, 350);
+    } catch (e) {}
+  }
+
+  function systemNotify(title, body) {
+    try {
+      if ("Notification" in window && Notification.permission === "granted") new Notification(title, { body: body });
+    } catch (e) {}
+  }
+
+  function enableSystemNotifs() {
+    if (!("Notification" in window)) return alert("المتصفح ده مش بيدعم الإشعارات");
+    Notification.requestPermission().then(() => {
+      document.getElementById("notifPermBtn").classList.add("hidden");
+    });
   }
 
   function checkTodayNotifications(manualClick) {
@@ -607,7 +1497,7 @@
     const overN = due.filter(d => d.kind === 'overdue').length;
     const monthN = due.filter(d => d.kind === 'month').length;
     const parts = [];
-    if (todayN) parts.push(`${todayN} متابعة النهارده`);
+    if (todayN) parts.push(`${todayN} متابعة حان وقتها`);
     if (overN) parts.push(`${overN} متأخرة`);
     if (monthN) parts.push(`${monthN} مؤجل لهذا الشهر`);
     if (banner) { document.getElementById("todayBannerText").innerText = "عندك: " + parts.join(" • "); banner.classList.remove("hidden"); }
@@ -622,65 +1512,1009 @@
             <div>
               <strong>${esc(c.name)}</strong> ${dueLabel(d)}<br>
               <small class="num-dir text-muted">${esc(p.local)}</small><br>
-              <small class="text-muted">البرنامج: ${esc(c.programName)} | الموعد: ${esc(c.followupDay ? c.followupDay + ' ' : '')}${esc(c.followupDate || c.postponeDate)}</small>
-              ${(c.fb2 || c.fb1) ? `<br><small>📝 ${esc(c.fb2 || c.fb1)}</small>` : ''}
+              <small class="text-muted">البرنامج: ${esc(c.programName)} | الموعد: ${esc(c.followupDay ? c.followupDay + ' ' : '')}${esc(c.followupDate || c.postponeDate)} ${esc(c.followupTime || '')}</small>
+              ${(c.fb3 || c.fb2 || c.fb1) ? `<br><small>📝 ${esc(c.fb3 || c.fb2 || c.fb1)}</small>` : ''}
             </div>
             <div class="text-nowrap">${contactButtons(c.phone)}</div>
           </div>
-          <button onclick="handleNotifAction('${esc(c.id)}')" class="btn btn-sm btn-primary w-100 mt-2">تمت المتابعة وتحديث الحالة</button>
+          <button onclick="handleNotifAction('${esc(c.id)}')" class="btn btn-sm btn-primary w-100 mt-2">تمت المتابعة (غيّر الحالة واكتب فيدباك)</button>
         </div>`;
     }).join("");
 
-    const permBtn = document.getElementById("notifPermBtn");
-    if (permBtn) permBtn.classList.toggle("hidden", !('Notification' in window) || Notification.permission !== 'default');
+    if ("Notification" in window && Notification.permission === "default") {
+      document.getElementById("notifPermBtn").classList.remove("hidden");
+    }
 
-    // النافذة تظهر تلقائياً مرة واحدة عند الفتح، وبعدها بالضغط على الجرس أو الشريط
-    if (manualClick || !notifShownThisSession) {
-      notifShownThisSession = true;
+    if (manualClick) { bsNotifModal.show(); return; }
+
+    // تنبيه فوري لأي متابعة جديدة حان وقتها
+    const fresh = due.filter(d => !notifiedIds.has(String(d.c.id)));
+    if (fresh.length > 0 && !document.querySelector('.modal.show')) {
+      fresh.forEach(d => notifiedIds.add(String(d.c.id)));
+      beep();
+      systemNotify("متابعة مطلوبة الآن", fresh.map(d => d.c.name).join("، "));
       bsNotifModal.show();
-      systemNotify(due);
     }
   }
 
+  let completionFor = null;
+
   function handleNotifAction(id) {
     const el = document.getElementById('notifModal');
-    el.addEventListener('hidden.bs.modal', () => editClient(id), { once: true });
+    el.addEventListener('hidden.bs.modal', () => editClient(id, true), { once: true });
     bsNotifModal.hide();
   }
 
-  // إشعار على نظام الموبايل/الكمبيوتر (بيشتغل لما التطبيق يتفتح)
-  function systemNotify(due) {
+  function renderFollowupClients() {
+    const tbody = document.getElementById("followupTable");
+    if (!tbody) return;
+    const search = document.getElementById("searchFollowupInput")?.value.toLowerCase().trim() || "";
+    const today = localDateStr();
+    const mgr = isManagerRole();
+
+    const list = allData.clients.filter(c => c.isFollowup || c.status === "هياجل لشهر تاني");
+    document.getElementById("followupBadge").innerText = list.length;
+
+    const filtered = list
+      .filter(c => `${c.name} ${c.phone} ${normalizePhone(c.phone).local} ${c.programName}`.toLowerCase().includes(search))
+      .sort((a, b) => ((a.followupDate ? a.followupDate + (a.followupTime || '') : '9999')).localeCompare(b.followupDate ? b.followupDate + (b.followupTime || '') : '9999'));
+
+    tbody.innerHTML = filtered.map((c, idx) => {
+      const p = normalizePhone(c.phone);
+      let dateHtml;
+      if (c.followupDate) {
+        const cls = c.followupDate < today ? 'bg-dark' : (c.followupDate === today ? 'bg-danger' : 'bg-primary');
+        const lbl = c.followupDate < today ? ' (متأخرة)' : (c.followupDate === today ? ' (اليوم)' : '');
+        dateHtml = `<span class="badge ${cls}">${esc(c.followupDay ? c.followupDay + ' ' : '')}${esc(c.followupDate)} ${esc(c.followupTime || '')}${lbl}</span>`;
+      } else {
+        dateHtml = `<span class="badge bg-primary">${esc(c.postponeDate) || '-'}</span>`;
+      }
+      return `
+        <tr ${statusRowAttr(c.status)}>
+          <td class="num-dir">${idx + 1}</td>
+          <td><strong>${esc(c.name)}</strong></td>
+          <td><div class="num-dir fw-bold">${esc(p.local)}</div><div>${contactButtons(c.phone)}</div></td>
+          <td>${dateHtml}</td>
+          <td>${esc(c.programName)}</td>
+          <td>${statusBadge(c.status)}</td>
+          <td><small>${esc(c.fb3 || c.fb2 || c.fb1) || '-'}</small></td>
+          <td>${esc(c.agentName)}</td>
+          <td class="text-nowrap">
+            <button onclick="editClient('${esc(c.id)}')" class="btn btn-sm btn-info text-white action-btn-sm" title="تعديل"><i class="fa-solid fa-pen"></i></button>
+            <button onclick="printClient('${esc(c.id)}')" class="btn btn-sm btn-outline-secondary action-btn-sm" title="طباعة"><i class="fa-solid fa-print"></i></button>
+            ${mgr ? `<button onclick="toggleFollowup('${esc(c.id)}', 'لا')" class="btn btn-sm btn-danger action-btn-sm" title="إلغاء المتابعة"><i class="fa-solid fa-xmark"></i></button>` : ''}
+          </td>
+        </tr>
+      `;
+    }).join("");
+  }
+
+  // =================== شاشة قيد الحجز ===================
+  function renderPendingBooking() {
+    const tbody = document.getElementById("pendingTable");
+    const list = allData.clients.filter(c => c.status === "هيحجز");
+    const b = document.getElementById("pendingBadge");
+    if (b) b.innerText = list.length;
+    if (!tbody) return;
+    if (list.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-3">لا يوجد عملاء قيد الحجز حالياً</td></tr>';
+      return;
+    }
+    tbody.innerHTML = list.map((c, idx) => {
+      const p = normalizePhone(c.phone);
+      return `
+        <tr class="row-willbook">
+          <td class="num-dir">${idx + 1}</td>
+          <td><strong>${esc(c.name)}</strong><br><small class="text-muted num-dir">${esc(c.createdDate)}</small></td>
+          <td><div class="num-dir fw-bold">${esc(p.local)}</div><div>${contactButtons(c.phone)}</div></td>
+          <td>${esc(c.programCategory)}: ${esc(c.programName)}${tripShort(c)}</td>
+          <td><span class="num-dir">${esc(c.members || 1)}</span> أفراد<br><small class="text-success fw-bold num-dir">${esc(c.price || 0)} ج.م</small></td>
+          <td><small><strong>ف1:</strong> ${esc(c.fb1) || '-'}<br><strong>ف2:</strong> ${esc(c.fb2) || '-'}<br><strong>ف3:</strong> ${esc(c.fb3) || '-'}</small></td>
+          <td><small class="fw-bold text-primary">${esc(c.agentName)}</small></td>
+          <td class="text-nowrap">
+            <button onclick="editClient('${esc(c.id)}')" class="btn btn-sm btn-outline-dark action-btn-sm" title="استكمال الحجز / تعديل"><i class="fa-solid fa-pen"></i></button>
+            <button onclick="printClient('${esc(c.id)}')" class="btn btn-sm btn-outline-secondary action-btn-sm" title="طباعة"><i class="fa-solid fa-print"></i></button>
+            <button onclick="openSendNoteModal('${esc(c.id)}')" class="btn btn-sm btn-outline-info action-btn-sm" title="تنبيه للموظف"><i class="fa-solid fa-paper-plane"></i></button>
+          </td>
+        </tr>`;
+    }).join("");
+  }
+
+  // =================== طلبات تعديل الرحلات ===================
+  function renderRequests() {
+    const box = document.getElementById("requestsList");
+    const pendingN = allData.tripRequests.filter(r => r.status === "pending").length;
+    const rb = document.getElementById("requestsBadge");
+    if (rb) rb.innerText = pendingN;
+    if (!box) return;
+    const list = allData.tripRequests.slice().sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
+    if (list.length === 0) { box.innerHTML = '<p class="text-center text-muted py-3">لا توجد طلبات</p>'; return; }
+
+    box.innerHTML = list.map(r => {
+      const c = allData.clients.find(x => String(x.id) === String(r.clientId));
+      const cat = c ? c.programCategory : "عمرة";
+      const diffs = diffTrip(cat, c ? c.tripDetails : {}, r.proposed);
+      const diffHtml = diffs.length
+        ? `<ul class="mb-1 small">${diffs.map(d => `<li><b>${esc(d.l)}:</b> <span class="text-danger">${esc(d.from)}</span> ➜ <span class="text-success">${esc(d.to)}</span></li>`).join("")}</ul>`
+        : '<div class="small text-muted">لا توجد فروق ظاهرة عن البيانات الحالية</div>';
+      let statusHtml, actions = "";
+      if (r.status === "pending") {
+        statusHtml = '<span class="badge bg-warning text-dark">قيد الانتظار</span>';
+        if (isManagerRole()) actions = `
+          <button class="btn btn-sm btn-success" onclick="decideRequest('${esc(r.id)}','approved')"><i class="fa-solid fa-check me-1"></i> موافقة</button>
+          <button class="btn btn-sm btn-danger" onclick="decideRequest('${esc(r.id)}','rejected')"><i class="fa-solid fa-xmark me-1"></i> رفض</button>`;
+      } else if (r.status === "approved") {
+        statusHtml = `<span class="badge bg-success">تمت الموافقة بواسطة ${esc(r.decidedBy)}</span> <small class="text-muted num-dir">${esc(r.decidedAt)}</small>`;
+      } else {
+        statusHtml = `<span class="badge bg-secondary">لم تتم الموافقة (${esc(r.decidedBy)})</span> <small class="text-muted num-dir">${esc(r.decidedAt)}</small>`;
+      }
+      return `
+        <div class="border rounded p-3 mb-2 bg-white">
+          <div class="d-flex justify-content-between flex-wrap gap-2">
+            <div><strong>${esc(r.clientName)}</strong> — من: <span class="text-primary fw-bold">${esc(r.requestedBy)}</span> <small class="text-muted num-dir">${esc(r.createdAt)}</small></div>
+            <div>${statusHtml}</div>
+          </div>
+          ${r.reason ? `<div class="small mt-1"><b>السبب:</b> ${esc(r.reason)}</div>` : ''}
+          <div class="mt-2">${diffHtml}</div>
+          <div class="d-flex gap-2">${actions}</div>
+        </div>`;
+    }).join("");
+  }
+
+  async function decideRequest(requestId, decision) {
+    const txt = decision === "approved" ? "الموافقة على" : "رفض";
+    if (!confirm(`تأكيد ${txt} طلب التعديل؟`)) return;
     try {
-      if (!('Notification' in window) || Notification.permission !== 'granted') return;
-      const opts = { body: `${due.length} عميل محتاج متابعة`, icon: 'icons/icon-192.png', badge: 'icons/icon-192.png', tag: 'crm-followup', lang: 'ar', dir: 'rtl' };
-      if (navigator.serviceWorker) navigator.serviceWorker.ready.then(reg => reg.showNotification('متابعات CRM', opts));
-      else new Notification('متابعات CRM', opts);
-    } catch (e) { /* تجاهل */ }
+      const res = await api({ action: "decideTripRequest", role: currUser.role, requestId: requestId, decision: decision, deciderName: currUser.name || currUser.username }, { post: true, label: "جاري تنفيذ القرار..." });
+      alert(res.message || "تم");
+      refreshData();
+    } catch (e) { showError(e.message); }
   }
 
-  async function enableSystemNotifs() {
-    if (!('Notification' in window)) return alert('المتصفح ده مش بيدعم الإشعارات');
-    const perm = await Notification.requestPermission();
-    document.getElementById("notifPermBtn")?.classList.toggle("hidden", perm !== 'default');
-    if (perm === 'granted') systemNotify(getDueClients());
+  // =================== المالية ===================
+  function renderFinance() {
+    const tbody = document.getElementById("financeTable");
+    if (!tbody) return;
+    tbody.innerHTML = "";
+
+    let totalVault = 0, totalDue = 0, totalContract = 0;
+    const booked = allData.clients.filter(c => c.status === "تم الحجز والتعاقد");
+
+    booked.forEach((c, idx) => {
+      const price = Number(c.price || 0);
+      const paid = Number(c.paidAmount || 0);
+      const due = price - paid;
+
+      totalVault += paid;
+      totalDue += due;
+      totalContract += price;
+
+      const paidBadge = due <= 0
+        ? `<span class="badge bg-success">مسدد بالكامل</span>`
+        : `<span class="badge bg-warning text-dark">آجل (باقي ${due.toLocaleString()} ج.م)</span>`;
+
+      tbody.innerHTML += `
+        <tr>
+          <td class="num-dir">${idx + 1}</td>
+          <td><strong>${esc(c.name)}</strong></td>
+          <td>${esc(c.agentName)}</td>
+          <td class="num-dir fw-bold">${price.toLocaleString()} ج.م</td>
+          <td class="num-dir text-success fw-bold">${paid.toLocaleString()} ج.م</td>
+          <td class="num-dir text-danger fw-bold">${due.toLocaleString()} ج.م</td>
+          <td>${paidBadge}</td>
+          <td><button onclick="editClient('${esc(c.id)}')" class="btn btn-sm btn-outline-primary">تحديث الدفع</button></td>
+        </tr>
+      `;
+    });
+
+    document.getElementById("finVault").innerText = `${totalVault.toLocaleString()} ج.م`;
+    document.getElementById("finDue").innerText = `${totalDue.toLocaleString()} ج.م`;
+    document.getElementById("finTotalContract").innerText = `${totalContract.toLocaleString()} ج.م`;
   }
 
-  function getStatusRowClass(status) {
-    if (!status) return "";
-    const st = String(status).trim();
-    if (st.includes("تم الحجز والتعاقد")) return "table-success";
-    if (st.includes("حجز مبدئي")) return "table-info";
-    if (st.includes("بيفكر")) return "table-warning";
-    if (st.includes("هياجل")) return "table-secondary";
-    if (st.includes("مش") || st.includes("قفل")) return "table-danger";
-    return "";
+  // =================== الإحصائيات و KPIs ===================
+  let lastStatsFiltered = [];
+  let lastDrillCategory = null;
+  let lastEmpRows = [];
+  const charts = {};
+
+  function getStatsFiltered() {
+    const uFilter = document.getElementById("statUserFilter")?.value || "ALL";
+    const fromDate = document.getElementById("statFromDate")?.value || "";
+    const toDate = document.getElementById("statToDate")?.value || "";
+    const pFilter = document.getElementById("statProgramFilter")?.value || "ALL";
+    return allData.clients.filter(c => {
+      if (uFilter !== "ALL" && c.agentName !== uFilter) return false;
+      if (pFilter !== "ALL" && c.programName !== pFilter) return false;
+      if (fromDate && c.createdDate && c.createdDate < fromDate) return false;
+      if (toDate && c.createdDate && c.createdDate > toDate) return false;
+      return true;
+    });
   }
 
-  // ===== فلتر التاريخ (خانة واحدة + أكتر من تاريخ) =====
+  function drawChart(id, cfg) {
+    if (!window.Chart) return;
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (charts[id]) charts[id].destroy();
+    charts[id] = new Chart(el, cfg);
+  }
+
+  function progressBar(label, cur, target, unit) {
+    const pct = target > 0 ? Math.min(100, Math.round(cur / target * 100)) : 0;
+    const cls = pct >= 100 ? "bg-success" : (pct >= 50 ? "bg-primary" : "bg-warning");
+    return `<div class="d-flex justify-content-between small fw-bold"><span>${label}</span><span class="num-dir">${cur.toLocaleString()} / ${target.toLocaleString()} ${unit} (${pct}%)</span></div>
+      <div class="progress" style="height:14px;"><div class="progress-bar ${cls}" style="width:${pct}%"></div></div>`;
+  }
+
+  const LOST_STATUSES = ["مش هيحجز", "قفل السكه في وشي", "مش بيرد"];
+
+  function renderStats() {
+    const filtered = getStatsFiltered();
+    lastStatsFiltered = filtered;
+
+    let totalSales = 0, totalBookedMembers = 0, totalComm = 0, bookedCount = 0, totalPaid = 0, lostCount = 0, pendingCount = 0;
+    const statusCounts = {};
+    const empStats = {};
+    const progStats = {};
+    const monthSales = {};
+
+    filtered.forEach(c => {
+      const st = c.status || "غير محدد";
+      statusCounts[st] = (statusCounts[st] || 0) + 1;
+
+      const agent = c.agentName || "غير محدد";
+      if (!empStats[agent]) empStats[agent] = { totalClients: 0, bookedClients: 0, totalSales: 0, bookedMembers: 0 };
+      empStats[agent].totalClients++;
+
+      const pn = c.programName || "بدون برنامج";
+      if (!progStats[pn]) progStats[pn] = { total: 0, booked: 0, members: 0, sales: 0 };
+      progStats[pn].total++;
+
+      if (LOST_STATUSES.includes(st)) lostCount++;
+      if (st === "هيحجز") pendingCount++;
+
+      if (st === "تم الحجز والتعاقد") {
+        bookedCount++;
+        const members = Number(c.members || 1);
+        const price = Number(c.price || 0);
+        totalSales += price;
+        totalPaid += Number(c.paidAmount || 0);
+        totalBookedMembers += members;
+        totalComm += members * 500;
+
+        empStats[agent].bookedClients++;
+        empStats[agent].totalSales += price;
+        empStats[agent].bookedMembers += members;
+
+        progStats[pn].booked++;
+        progStats[pn].members += members;
+        progStats[pn].sales += price;
+
+        const mk = (c.createdDate || "").slice(0, 7) || "غير محدد";
+        monthSales[mk] = (monthSales[mk] || 0) + price;
+      }
+    });
+
+    document.getElementById("stSales").innerText = `${totalSales.toLocaleString()} ج.م`;
+    document.getElementById("stBookedCount").innerText = `${totalBookedMembers} أفراد`;
+    document.getElementById("stCommission").innerText = `${totalComm.toLocaleString()} ج.م`;
+    document.getElementById("stTotalClients").innerText = `${filtered.length} عميل`;
+
+    const n = filtered.length;
+    const pct = (a, b) => b > 0 ? ((a / b) * 100).toFixed(1) : "0.0";
+    const followupCount = filtered.filter(c => c.isFollowup).length;
+    const avgTicket = totalBookedMembers > 0 ? Math.round(totalSales / totalBookedMembers) : 0;
+    const avgContract = bookedCount > 0 ? Math.round(totalSales / bookedCount) : 0;
+    const nowDt = new Date();
+    const overdueN = filtered.filter(c => c.isFollowup && c.followupDate && followupDateTime(c) <= nowDt).length;
+
+    document.getElementById("kpiConversionRate").innerText = `${pct(bookedCount, n)}%`;
+    document.getElementById("kpiFollowupRate").innerText = `${pct(followupCount, n)}%`;
+    document.getElementById("kpiAvgTicket").innerText = `${avgTicket.toLocaleString()} ج.م`;
+    document.getElementById("kpiCollection").innerText = `${pct(totalPaid, totalSales)}%`;
+    document.getElementById("kpiLost").innerText = `${pct(lostCount, n)}%`;
+    document.getElementById("kpiPending").innerText = pendingCount;
+    document.getElementById("kpiAvgContract").innerText = `${avgContract.toLocaleString()} ج.م`;
+    document.getElementById("kpiOverdue").innerText = overdueN;
+
+    // الأهداف الشهرية
+    const tgS = Number(allData.settings.targetSales || 0);
+    const tgP = Number(allData.settings.targetPersons || 0);
+    const tBox = document.getElementById("targetsBox");
+    if (tBox) {
+      if (tgS > 0 || tgP > 0) {
+        const ym = localDateStr().slice(0, 7);
+        const uF = document.getElementById("statUserFilter")?.value || "ALL";
+        let mSales = 0, mPersons = 0;
+        allData.clients.forEach(c => {
+          if (c.status !== "تم الحجز والتعاقد") return;
+          if ((c.createdDate || "").slice(0, 7) !== ym) return;
+          if (uF !== "ALL" && c.agentName !== uF) return;
+          mSales += Number(c.price || 0);
+          mPersons += Number(c.members || 1);
+        });
+        document.getElementById("tgSalesBar").innerHTML = tgS > 0 ? progressBar("المبيعات", mSales, tgS, "ج.م") : "";
+        document.getElementById("tgPersonsBar").innerHTML = tgP > 0 ? progressBar("الأفراد المتعاقدين", mPersons, tgP, "فرد") : "";
+        tBox.classList.remove("hidden");
+      } else tBox.classList.add("hidden");
+    }
+
+    // جدول أداء الموظفين
+    lastEmpRows = [];
+    const empTable = document.getElementById("kpiEmployeeTable");
+    if (empTable) {
+      empTable.innerHTML = Object.keys(empStats).map(agent => {
+        const es = empStats[agent];
+        const cr = pct(es.bookedClients, es.totalClients);
+        const comm = es.bookedMembers * 500;
+        let ratingTxt = "مقبول", ratingBadge = '<span class="badge bg-secondary">مقبول</span>';
+        if (parseFloat(cr) >= 30) { ratingTxt = "ممتاز"; ratingBadge = '<span class="badge bg-success">ممتاز 🔥</span>'; }
+        else if (parseFloat(cr) >= 15) { ratingTxt = "جيد جداً"; ratingBadge = '<span class="badge bg-info text-dark">جيد جداً</span>'; }
+        lastEmpRows.push([agent, es.totalClients, es.bookedClients, cr + "%", es.totalSales, comm, ratingTxt]);
+        return `
+          <tr>
+            <td><strong>${esc(agent)}</strong></td>
+            <td class="num-dir">${es.totalClients}</td>
+            <td class="num-dir text-success fw-bold">${es.bookedClients}</td>
+            <td class="num-dir fw-bold text-primary">${cr}%</td>
+            <td class="num-dir">${es.totalSales.toLocaleString()} ج.م</td>
+            <td class="num-dir text-warning fw-bold">${comm.toLocaleString()} ج.م</td>
+            <td>${ratingBadge}</td>
+          </tr>`;
+      }).join("");
+    }
+
+    // جدول البرامج
+    const progTable = document.getElementById("kpiProgramTable");
+    if (progTable) {
+      progTable.innerHTML = Object.keys(progStats).sort((a, b) => progStats[b].sales - progStats[a].sales).map(pn => {
+        const ps = progStats[pn];
+        return `<tr><td><strong>${esc(pn)}</strong></td><td class="num-dir">${ps.total}</td><td class="num-dir text-success fw-bold">${ps.booked}</td><td class="num-dir">${ps.members}</td><td class="num-dir text-primary fw-bold">${pct(ps.booked, ps.total)}%</td><td class="num-dir">${ps.sales.toLocaleString()} ج.م</td></tr>`;
+      }).join("");
+    }
+
+    // بطاقات الحالات
+    const container = document.getElementById("statusCountsContainer");
+    if (container) {
+      container.innerHTML = "";
+      Object.keys(statusCounts).forEach(st => {
+        container.innerHTML += `
+          <div class="col-md-3 col-6">
+            <div class="card p-2 text-center border clickable-card" style="background:${statusStyle(st).bg};border-color:${statusStyle(st).badge} !important;" data-status="${esc(st)}" onclick="openStatDrilldown(this.dataset.status)">
+              <small class="text-muted">${esc(st)}</small>
+              <h4 class="m-0 fw-bold" style="color:${statusStyle(st).badge}">${statusCounts[st]}</h4>
+            </div>
+          </div>`;
+      });
+    }
+
+    // الرسوم البيانية
+    const months = Object.keys(monthSales).sort();
+    drawChart("chSales", { type: "bar", data: { labels: months, datasets: [{ label: "المبيعات (ج.م)", data: months.map(m => monthSales[m]), backgroundColor: "#0d6efd" }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } } });
+    const stLabels = Object.keys(statusCounts);
+    drawChart("chStatus", { type: "doughnut", data: { labels: stLabels, datasets: [{ data: stLabels.map(s => statusCounts[s]), backgroundColor: stLabels.map(s => statusStyle(s).badge) }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: "bottom", labels: { boxWidth: 10, font: { size: 10 } } } } } });
+    const agents = Object.keys(empStats);
+    drawChart("chEmp", { type: "bar", data: { labels: agents, datasets: [{ label: "المبيعات (ج.م)", data: agents.map(a => empStats[a].totalSales), backgroundColor: "#198754" }] }, options: { indexAxis: "y", responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } } });
+  }
+
+  function exportKpiCsv() {
+    const header = ["الموظف", "إجمالي العملاء", "المتعاقدين", "نسبة التحويل", "إجمالي المبيعات", "العمولة", "التقييم"];
+    const rows = [header].concat(lastEmpRows);
+    const csv = "\uFEFF" + rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "kpi-" + localDateStr() + ".csv";
+    document.body.appendChild(a); a.click(); a.remove();
+  }
+
+  function fillTargetInputs() {
+    const a = document.getElementById("tgSalesInput"), b = document.getElementById("tgPersonsInput");
+    if (a && document.activeElement !== a) a.value = allData.settings.targetSales || "";
+    if (b && document.activeElement !== b) b.value = allData.settings.targetPersons || "";
+  }
+
+  async function saveTargets() {
+    try {
+      await api({ action: "saveSetting", role: currUser.role, key: "targetSales", value: document.getElementById("tgSalesInput").value || "0" }, { post: true, label: "جاري حفظ الأهداف..." });
+      await api({ action: "saveSetting", role: currUser.role, key: "targetPersons", value: document.getElementById("tgPersonsInput").value || "0" }, { post: true, label: "جاري حفظ الأهداف..." });
+      alert("تم حفظ الأهداف");
+      refreshData();
+    } catch (e) { showError(e.message); }
+  }
+
+  // التفاعل مع الإحصائيات (Drill-down Modal)
+  function openStatDrilldown(statusCategory) {
+    lastDrillCategory = statusCategory;
+    const title = document.getElementById("statDrillTitle");
+    const tbody = document.getElementById("statDrillTable");
+    if (!title || !tbody) return;
+    const mgr = isManagerRole();
+
+    title.innerText = `تفاصيل العملاء في إحصائية: (${statusCategory})`;
+
+    const base = lastStatsFiltered.length || document.getElementById("sec-stats").classList.contains("hidden") === false ? lastStatsFiltered : allData.clients;
+    let clientsList = [];
+    if (statusCategory === 'الكل') {
+      clientsList = base;
+    } else if (statusCategory === 'المبيعات المؤكدة' || statusCategory === 'تم الحجز والتعاقد' || statusCategory === 'العمولات') {
+      clientsList = base.filter(c => c.status === "تم الحجز والتعاقد");
+    } else {
+      clientsList = base.filter(c => c.status === statusCategory);
+    }
+
+    // ملخص الموظفين داخل الإحصائية
+    const empBox = document.getElementById("statDrillEmployees");
+    const empCount = {};
+    clientsList.forEach(c => { const a = c.agentName || "غير محدد"; empCount[a] = (empCount[a] || 0) + 1; });
+    empBox.innerHTML = '<span class="small text-muted align-self-center">الموظفون:</span>' +
+      Object.keys(empCount).map(a => `<span class="badge bg-primary fs-6">${esc(a)} <span class="badge bg-light text-dark">${empCount[a]}</span></span>`).join("");
+
+    if (clientsList.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted">لا يوجد عملاء في هذه الإحصائية</td></tr>';
+    } else {
+      tbody.innerHTML = clientsList.map((c, idx) => {
+        const p = normalizePhone(c.phone);
+        return `
+          <tr>
+            <td class="num-dir fw-bold">${idx + 1}</td>
+            <td><strong>${esc(c.name)}</strong></td>
+            <td><span class="num-dir">${esc(p.local)}</span></td>
+            <td>${esc(c.programName)}</td>
+            <td>${esc(c.members || 1)} أفراد (${esc(c.price || 0)} ج.م)</td>
+            <td>${statusBadge(c.status)}</td>
+            <td><strong class="text-primary">${esc(c.agentName)}</strong></td>
+            <td><small class="num-dir">${esc(c.createdDate)}</small></td>
+            <td class="text-nowrap">
+              ${mgr ? `<button onclick="openSendNoteModal('${esc(c.id)}', true)" class="btn btn-sm btn-outline-info" title="إرسال تنبيه للموظف الكاتب"><i class="fa-solid fa-paper-plane me-1"></i> تنبيه</button>` : ''}
+              <button onclick="printClient('${esc(c.id)}')" class="btn btn-sm btn-outline-secondary" title="طباعة"><i class="fa-solid fa-print"></i></button>
+            </td>
+          </tr>`;
+      }).join("");
+    }
+
+    bsStatDrillModal.show();
+  }
+
+  // =================== التنبيهات الإدارية والملاحظات الموجهة ===================
+  function isNoteForMe(n) {
+    const to = String(n.toUser || "").trim().toLowerCase();
+    if (!to) return false;
+    const mine = [currUser?.username, currUser?.name, currUser?.code].filter(Boolean).map(x => String(x).toLowerCase());
+    if (mine.includes(to)) return true;
+    return isManagerRole() && (to === "المشرف");
+  }
+
+  function renderAdminNotesBadge() {
+    const badge = document.getElementById("adminNotesBadge");
+    if (!badge) return;
+    const unread = allData.adminNotes.filter(n => n.status === "unread" && isNoteForMe(n));
+    if (unread.length > 0) {
+      badge.innerText = unread.length;
+      badge.classList.remove("hidden");
+    } else {
+      badge.classList.add("hidden");
+    }
+  }
+
+  function openAdminNotesModal() {
+    const box = document.getElementById("adminNotesList");
+    if (!box) return;
+
+    if (allData.adminNotes.length === 0) {
+      box.innerHTML = '<p class="text-center text-muted py-3">لا توجد تنبيهات إدارية حالياً</p>';
+    } else {
+      const list = allData.adminNotes.slice().sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
+      box.innerHTML = list.map(n => `
+        <div class="list-group-item ${n.status === 'unread' && isNoteForMe(n) ? 'list-group-item-warning' : ''}">
+          <div class="d-flex justify-content-between align-items-start">
+            <div>
+              <strong>من: ${esc(n.fromUser)}</strong> ➔ <span class="text-primary">${esc(n.toUser)}</span><br>
+              <small class="fw-bold">العميل: ${esc(n.clientName)}</small><br>
+              <p class="m-0 mt-1">${esc(n.noteText)}</p>
+              <small class="text-muted num-dir">${esc(n.createdAt)}</small>
+            </div>
+            ${n.status === 'unread' ? `<button onclick="markNoteRead('${esc(n.id)}')" class="btn btn-sm btn-outline-dark">تأكيد الاطلاع</button>` : '<span class="badge bg-secondary">تم الاطلاع</span>'}
+          </div>
+        </div>
+      `).join("");
+    }
+
+    bsAdminNotesModal.show();
+  }
+
+  function openSendNoteModal(clientId, fromDrill) {
+    const c = allData.clients.find(x => String(x.id) === String(clientId));
+    if (!c) return;
+    document.getElementById("noteClientId").value = c.id;
+    document.getElementById("noteClientName").value = c.name;
+    document.getElementById("noteToUser").value = c.agentName;
+    document.getElementById("noteToUserName").value = c.agentName;
+    document.getElementById("noteText").value = "";
+    if (fromDrill) {
+      reopenDrill = lastDrillCategory;
+      document.getElementById('statDrillModal').addEventListener('hidden.bs.modal', () => bsSendNoteModal.show(), { once: true });
+      bsStatDrillModal.hide();
+    } else {
+      bsSendNoteModal.show();
+    }
+  }
+
+  async function submitAdminNote() {
+    const clientId = document.getElementById("noteClientId").value;
+    const clientName = document.getElementById("noteClientName").value;
+    const toUser = document.getElementById("noteToUser").value;
+    const noteText = document.getElementById("noteText").value.trim();
+
+    if (!noteText) return alert("يرجى كتابة نص الملاحظة!");
+    const fromUser = currUser?.name || currUser?.username || "المدير";
+
+    try {
+      await api({ action: "sendAdminNote", fromUser, toUser, clientId, clientName, noteText }, { post: true, label: "جاري إرسال التنبيه..." });
+      alert("تم إرسال التنبيه للموظف بنجاح");
+      bsSendNoteModal.hide();
+      refreshData(true);
+    } catch (e) {
+      showError(e.message);
+    }
+  }
+
+  async function markNoteRead(noteId) {
+    try {
+      await api({ action: "markNoteRead", noteId }, { post: true, label: "جاري التحديث..." });
+      await refreshData(true);
+      openAdminNotesModal();
+    } catch (e) { showError(e.message); }
+  }
+
+  // =================== لوحة المدير الفني: إدارة الموظفين ===================
+  async function fetchUsersList() {
+    if (currUser?.role !== "tech_manager") return;
+    try {
+      const data = await api({ action: "getUsers", role: "tech_manager" }, { silent: true });
+      if (data.status === "success" && Array.isArray(data.users)) renderUsersList(data.users);
+    } catch (e) { console.error(e); }
+  }
+
+  let usersCache = [];
+  function renderUsersList(users) {
+    usersCache = users;
+    const tbody = document.getElementById("usersListTable");
+    if (!tbody) return;
+
+    tbody.innerHTML = users.map((u, i) => `
+      <tr>
+        <td><strong>${esc(u.username)}</strong></td>
+        <td>${esc(u.name)}</td>
+        <td class="num-dir">${esc(u.code)}</td>
+        <td><span class="badge bg-primary">${getRoleLabel(u.role)}</span></td>
+        <td>
+          <button onclick="editUserByIndex(${i})" class="btn btn-sm btn-outline-dark"><i class="fa-solid fa-pen"></i></button>
+          <button onclick="deleteUserByIndex(${i})" class="btn btn-sm btn-outline-danger"><i class="fa-solid fa-trash"></i></button>
+        </td>
+      </tr>
+    `).join("");
+  }
+
+  function editUserByIndex(i) {
+    const u = usersCache[i];
+    if (!u) return;
+    document.getElementById("uUsername").value = u.username;
+    document.getElementById("uPassword").value = u.password;
+    document.getElementById("uCode").value = u.code;
+    document.getElementById("uRole").value = u.role;
+    document.getElementById("uName").value = u.name;
+  }
+
+  function deleteUserByIndex(i) {
+    const u = usersCache[i];
+    if (u) deleteUserByTech(u.username);
+  }
+
+  async function saveUserByTech() {
+    if (currUser?.role !== "tech_manager") return alert("عفواً! المدير الفني هو الوحيد المصرح له بهذه العملية.");
+
+    const u = document.getElementById("uUsername").value.trim();
+    const p = document.getElementById("uPassword").value.trim();
+    const c = document.getElementById("uCode").value.trim();
+    const r = document.getElementById("uRole").value;
+    const n = document.getElementById("uName").value.trim();
+
+    if (!u || !p) return alert("يرجى إدخال اسم المستخدم وكلمة المرور!");
+
+    try {
+      const data = await api({ action: "saveUser", requesterRole: "tech_manager", username: u, password: p, code: c, role: r, name: n }, { post: true, label: "جاري حفظ الموظف..." });
+      alert(data.message || "تم الحفظ بنجاح");
+      fetchUsersList();
+    } catch (e) { showError(e.message); }
+  }
+
+  async function deleteUserByTech(username) {
+    if (currUser?.role !== "tech_manager") return alert("عفواً! المدير الفني هو الوحيد المصرح له بالحذف.");
+    if (!confirm(`هل أنت تأكد من حذف الموظف (${username})؟`)) return;
+
+    try {
+      const data = await api({ action: "deleteUser", requesterRole: "tech_manager", username: username }, { post: true, label: "جاري الحذف..." });
+      alert(data.message || "تم الحذف");
+      fetchUsersList();
+    } catch (e) { showError(e.message); }
+  }
+
+  // =================== منشئ البرامج (للمدير) ===================
+  let editingProgramId = null;
+
+  function onPbCategoryChange() {
+    const cat = document.getElementById("pbCategory").value;
+    const keep = readTripForm("pbForm");
+    renderTripForm("pbForm", cat, editingProgramId ? keep : { name: keep.name, price: keep.price }, false);
+  }
+
+  function resetProgramBuilder() {
+    editingProgramId = null;
+    document.getElementById("pbEditingInfo").innerText = "";
+    renderTripForm("pbForm", document.getElementById("pbCategory").value, {}, false);
+  }
+
+  async function saveProgramFromBuilder() {
+    const cat = document.getElementById("pbCategory").value;
+    const details = readTripForm("pbForm");
+    if (!String(details.name || "").trim()) return alert("اكتب اسم البرنامج");
+    if (cat === "تركيا" && !details.country) details.country = "تركيا";
+    try {
+      const res = await api({
+        action: "saveProgram", role: currUser.role, id: editingProgramId || "",
+        category: cat, name: String(details.name).trim(), details: JSON.stringify(details),
+        createdBy: currUser.name || currUser.username
+      }, { post: true, label: "جاري حفظ البرنامج..." });
+      alert(res.message || "تم الحفظ");
+      resetProgramBuilder();
+      refreshData();
+    } catch (e) { showError(e.message); }
+  }
+
+  function editProgramAdmin(id) {
+    const p = allData.programs.find(x => String(x.id) === String(id));
+    if (!p) return;
+    editingProgramId = p.id;
+    document.getElementById("pbCategory").value = p.category;
+    renderTripForm("pbForm", p.category, p.details, false);
+    document.getElementById("pbEditingInfo").innerText = "جاري تعديل: " + p.name;
+    document.getElementById("pbForm").scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+
+  async function deleteProgramAdmin(id) {
+    if (!confirm("تأكيد حذف البرنامج؟ (العملاء المسجلين عليه تبقى بياناتهم كما هي)")) return;
+    try {
+      await api({ action: "deleteProgramById", role: currUser.role, id: id }, { post: true, label: "جاري الحذف..." });
+      refreshData();
+    } catch (e) { showError(e.message); }
+  }
+
+  function renderProgramsAdmin() {
+    const tbody = document.getElementById("programsAdminTable");
+    if (!tbody) return;
+    if (allData.programs.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted">لا توجد برامج مفصلة بعد</td></tr>';
+      return;
+    }
+    tbody.innerHTML = allData.programs.map(p => `
+      <tr>
+        <td><span class="badge bg-secondary">${esc(p.category)}</span></td>
+        <td><strong>${esc(p.name)}</strong></td>
+        <td class="num-dir">${esc(p.details.departDate || '-')}</td>
+        <td class="num-dir">${esc(p.details.returnDate || '-')}</td>
+        <td class="num-dir">${esc(p.details.price || '-')}</td>
+        <td><small>${esc(p.createdBy)}</small></td>
+        <td class="text-nowrap">
+          <button class="btn btn-sm btn-outline-dark" onclick="editProgramAdmin('${esc(p.id)}')"><i class="fa-solid fa-pen"></i></button>
+          <button class="btn btn-sm btn-outline-danger" onclick="deleteProgramAdmin('${esc(p.id)}')"><i class="fa-solid fa-trash"></i></button>
+        </td>
+      </tr>`).join("");
+  }
+
+  // =================== العمليات الأساسية ===================
+  let currentTrip = { programId: "", details: null };
+  let lastAutoPrice = "";
+
+  function programsForCategory(cat) {
+    const detailed = allData.programs.filter(p => p.category === cat);
+    const legacyList = cat === "عمرة" ? allData.omraPrograms : (cat === "تركيا" ? allData.turkeyPrograms : []);
+    const legacy = legacyList.filter(n => !detailed.some(p => p.name === n));
+    return { detailed, legacy };
+  }
+
+  function fillProgramSelect(cat, selected) {
+    const sel = document.getElementById("cProgramName");
+    const { detailed, legacy } = programsForCategory(cat);
+    let html = '<option value="">-- اختر البرنامج --</option>';
+    if (detailed.length) html += '<optgroup label="برامج مفصلة">' + detailed.map(p => `<option value="${esc(p.name)}">${esc(p.name)}</option>`).join("") + '</optgroup>';
+    if (legacy.length) html += '<optgroup label="برامج (اسم فقط)">' + legacy.map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join("") + '</optgroup>';
+    sel.innerHTML = html;
+    if (selected) {
+      if (![...sel.options].some(o => o.value === selected)) sel.insertAdjacentHTML("beforeend", `<option value="${esc(selected)}">${esc(selected)}</option>`);
+      sel.value = selected;
+    }
+  }
+
+  function onCategoryChange() {
+    const cat = document.getElementById("cProgramCategory").value;
+    document.getElementById("turkeySubDiv")?.classList.toggle("hidden", cat !== "تركيا");
+    fillProgramSelect(cat, "");
+    onProgramChange();
+  }
+
+  function onProgramChange() {
+    const cat = document.getElementById("cProgramCategory").value;
+    const name = document.getElementById("cProgramName").value;
+    const p = allData.programs.find(x => x.category === cat && x.name === name);
+    if (p) {
+      currentTrip = { programId: p.id, details: JSON.parse(JSON.stringify(p.details)) };
+      autoFillPrice();
+    } else {
+      currentTrip = { programId: "", details: null };
+    }
+    renderTripBox();
+  }
+
+  function autoFillPrice() {
+    const d = currentTrip.details;
+    if (!d || !d.price) return;
+    const priceEl = document.getElementById("cPrice");
+    if (priceEl.value === "" || priceEl.value === lastAutoPrice) {
+      const total = String(Number(d.price) * Number(document.getElementById("cMembers").value || 1));
+      priceEl.value = total;
+      lastAutoPrice = total;
+    }
+  }
+
+  function onMembersChange() { autoFillPrice(); }
+
+  function renderTripBox() {
+    const wrap = document.getElementById("tripBoxWrap");
+    const d = currentTrip.details;
+    document.getElementById("tripReqArea").classList.add("hidden");
+    if (!d) { wrap.classList.add("hidden"); return; }
+    wrap.classList.remove("hidden");
+
+    const cat = document.getElementById("cProgramCategory").value;
+    const mgr = isManagerRole();
+    renderTripForm("tripForm", cat, d, !mgr);
+
+    document.getElementById("tripApprovedInfo").innerText = d._approvedBy ? `آخر تعديل معتمد بواسطة المدير: ${d._approvedBy}` : "";
+
+    const cid = document.getElementById("cId").value;
+    const existing = cid && cid !== "0";
+    const pend = existing ? pendingRequestFor(cid) : null;
+    const pi = document.getElementById("tripPendingInfo");
+    if (pend) { pi.innerText = "يوجد طلب تعديل لبيانات الرحلة قيد انتظار موافقة المدير."; pi.classList.remove("hidden"); }
+    else pi.classList.add("hidden");
+
+    document.getElementById("tripEditBtn").classList.toggle("hidden", mgr || !existing || !!pend);
+  }
+
+  function startTripEdit() {
+    const cat = document.getElementById("cProgramCategory").value;
+    renderTripForm("tripForm", cat, currentTrip.details, false);
+    document.getElementById("tripReqArea").classList.remove("hidden");
+    document.getElementById("tripEditBtn").classList.add("hidden");
+    document.getElementById("tripReqReason").value = "";
+  }
+
+  function cancelTripEdit() { renderTripBox(); }
+
+  async function sendTripRequest() {
+    const cid = document.getElementById("cId").value;
+    if (!cid || cid === "0") return alert("احفظ العميل أولاً ثم اطلب التعديل");
+    const cat = document.getElementById("cProgramCategory").value;
+    const proposed = readTripForm("tripForm");
+    const diffs = diffTrip(cat, currentTrip.details, proposed);
+    if (!diffs.length) return alert("لم تقم بتغيير أي بيانات في الرحلة");
+    const reason = document.getElementById("tripReqReason").value.trim();
+    if (!reason) return alert("اكتب سبب التعديل للمدير");
+    try {
+      const res = await api({
+        action: "submitTripRequest", clientId: cid, clientName: document.getElementById("cName").value,
+        requestedBy: currUser.username || currUser.name, requestedByCode: currUser.code || "",
+        proposed: JSON.stringify(proposed), reason: reason
+      }, { post: true, label: "جاري إرسال الطلب للمدير..." });
+      alert(res.message || "تم إرسال الطلب");
+      await refreshData(true);
+      renderTripBox();
+    } catch (e) { showError(e.message); }
+  }
+
+  function onStatusChange() {
+    const st = document.getElementById("cStatus").value;
+    document.getElementById("customStatusDiv")?.classList.toggle("hidden", st !== "OTHER");
+    document.getElementById("postponeMonthDiv")?.classList.toggle("hidden", st !== "هياجل لشهر تاني");
+    document.getElementById("paymentSectionDiv")?.classList.toggle("hidden", st !== "تم الحجز والتعاقد");
+    document.getElementById("willBookInfo")?.classList.toggle("hidden", st !== "هيحجز");
+
+    if (st === "هياجل لشهر تاني") {
+      document.getElementById("cIsFollowup").checked = true;
+      toggleFollowupFields();
+    }
+  }
+
+  function editClient(id, completion) {
+    const c = allData.clients.find(x => String(x.id) === String(id));
+    if (!c) return;
+
+    document.getElementById("cId").value = c.id;
+    document.getElementById("cCreatedDate").value = c.createdDate || "";
+    document.getElementById("cName").value = c.name || "";
+    document.getElementById("cPhone").value = c.phone || "";
+    document.getElementById("cAddress").value = c.address || "";
+    document.getElementById("cMembers").value = c.members || 1;
+    document.getElementById("cProgramCategory").value = c.programCategory || "عمرة";
+    document.getElementById("turkeySubDiv")?.classList.toggle("hidden", (c.programCategory || "عمرة") !== "تركيا");
+    fillProgramSelect(c.programCategory || "عمرة", c.programName || "");
+    document.getElementById("cTurkeySubName").value = c.turkeySubName || "";
+    document.getElementById("cPrice").value = c.price || "";
+    lastAutoPrice = "";
+
+    // تفاصيل الرحلة المحفوظة للعميل (أو بيانات البرنامج الحالية لو لسه متحفظش)
+    if (c.tripDetails) {
+      currentTrip = { programId: c.programId || "", details: JSON.parse(JSON.stringify(c.tripDetails)) };
+    } else {
+      const p = allData.programs.find(x => x.category === c.programCategory && x.name === c.programName);
+      currentTrip = p ? { programId: p.id, details: JSON.parse(JSON.stringify(p.details)) } : { programId: "", details: null };
+    }
+    renderTripBox();
+
+    const standardStatuses = ["تم الحجز والتعاقد", "هيحجز", "حجز مبدئي", "بيفكر", "هياجل لشهر تاني", "متابعه واتساب", "مش هيحجز", "قفل السكه في وشي", "مش بيرد"];
+    if (standardStatuses.includes(c.status)) {
+      document.getElementById("cStatus").value = c.status;
+    } else {
+      document.getElementById("cStatus").value = "OTHER";
+      document.getElementById("cCustomStatus").value = c.status || "";
+    }
+    onStatusChange();
+
+    document.getElementById("cPostponeMonth").value = c.postponeDate || "يناير";
+    document.getElementById("cPaidAmount").value = c.paidAmount || 0;
+    document.getElementById("cPaymentNotes").value = c.paymentNotes || "";
+
+    document.getElementById("cIsFollowup").checked = (c.isFollowup === true);
+    document.getElementById("cFollowupDate").value = c.followupDate || "";
+    document.getElementById("cFollowupTime").value = c.followupTime || "";
+    document.getElementById("cFollowupDay").value = c.followupDay || "";
+    document.getElementById("cFb1").value = c.fb1 || "";
+    document.getElementById("cFb2").value = c.fb2 || "";
+    document.getElementById("cFb3").value = c.fb3 || "";
+
+    toggleFollowupFields();
+
+    if (completion) {
+      completionFor = { id: c.id, status: c.status, fbs: [c.fb1 || "", c.fb2 || "", c.fb3 || ""] };
+      document.getElementById("completionBanner").classList.remove("hidden");
+    } else {
+      completionFor = null;
+      document.getElementById("completionBanner").classList.add("hidden");
+    }
+    bsClientModal.show();
+  }
+
+  async function saveClient() {
+    const id = document.getElementById("cId").value;
+    const phone = document.getElementById("cPhone").value.trim();
+    const name = document.getElementById("cName").value.trim();
+    if (!name || !phone) return alert("يرجى إدخال اسم العميل ورقم الموبايل!");
+
+    const statusSelect = document.getElementById("cStatus").value;
+    const finalStatus = statusSelect === "OTHER" ? document.getElementById("cCustomStatus").value : statusSelect;
+    const isFollowup = document.getElementById("cIsFollowup").checked;
+    const fDate = document.getElementById("cFollowupDate").value;
+    const fTime = document.getElementById("cFollowupTime").value;
+    const fb1 = document.getElementById("cFb1").value, fb2 = document.getElementById("cFb2").value, fb3 = document.getElementById("cFb3").value;
+
+    if (isFollowup && !fDate && finalStatus !== "هياجل لشهر تاني") return alert("حدد تاريخ ووقت المتابعة");
+
+    // شرط إتمام المتابعة: تغيير الحالة + فيدباك جديد + موعد جديد أو إيقاف المتابعة
+    if (completionFor && String(completionFor.id) === String(id)) {
+      if (finalStatus === completionFor.status) return alert("لازم تغيّر حالة الحجز علشان تتم المتابعة");
+      const nf = [fb1, fb2, fb3];
+      const changed = nf.some((v, i) => v.trim() && v.trim() !== (completionFor.fbs[i] || "").trim());
+      if (!changed) return alert("اكتب فيدباك جديد عن المتابعة دي");
+      if (isFollowup && fDate) {
+        const dt = new Date(`${fDate}T${fTime || "00:00"}:00`);
+        if (dt <= new Date()) return alert("موعد المتابعة الجديد لازم يكون في المستقبل، أو أوقف خيار المتابعة");
+      }
+    }
+
+    // تفاصيل الرحلة: المدير يعدلها مباشرة، الموظف يحفظ المعتمدة فقط
+    let tripDetails = currentTrip.details;
+    if (tripDetails && isManagerRole()) tripDetails = readTripForm("tripForm");
+
+    const body = {
+      action: "saveClient",
+      id: id,
+      editorRole: currUser?.role || 'mowazaf',
+      editorName: currUser?.name || currUser?.username || '',
+      agentCode: currUser?.code || '',
+      agentName: currUser?.name || currUser?.username || '',
+      name: name,
+      phone: phone,
+      address: document.getElementById("cAddress").value,
+      members: document.getElementById("cMembers").value,
+      programCategory: document.getElementById("cProgramCategory").value,
+      programName: document.getElementById("cProgramName").value,
+      turkeySubName: document.getElementById("cTurkeySubName").value,
+      programId: currentTrip.programId || "",
+      tripDetails: tripDetails ? JSON.stringify(tripDetails) : "",
+      price: document.getElementById("cPrice").value,
+      status: finalStatus,
+      postponeDate: document.getElementById("cPostponeMonth").value,
+      paidAmount: document.getElementById("cPaidAmount").value,
+      paymentNotes: document.getElementById("cPaymentNotes").value,
+      isFollowup: isFollowup ? "نعم" : "لا",
+      followupDate: fDate,
+      followupTime: fTime,
+      followupDay: document.getElementById("cFollowupDay").value,
+      createdDate: document.getElementById("cCreatedDate").value || localDateStr(),
+      fb1: fb1, fb2: fb2, fb3: fb3
+    };
+
+    try {
+      await api(body, { post: true, label: "جاري حفظ البيانات..." });
+    } catch (err) {
+      return showError(err.message, () => saveClient());
+    }
+    completionFor = null;
+    bsClientModal.hide();
+    refreshData();
+  }
+
+  async function toggleFollowup(id, status) {
+    try {
+      await api({ action: "toggleFollowup", id, status }, { post: true, label: "جاري التحديث..." });
+      refreshData();
+    } catch (e) { showError(e.message); }
+  }
+
+  async function deleteClient(id) {
+    if (!confirm("تأكيد حذف العميل؟")) return;
+    try {
+      await api({ action: "deleteClient", id }, { post: true, label: "جاري الحذف..." });
+      refreshData();
+    } catch (e) { showError(e.message); }
+  }
+
+  async function addProgram(type) {
+    const inputId = type === 'تركيا' ? 'npTurkeyName' : 'npOmraName';
+    const input = document.getElementById(inputId);
+    if (!input || !input.value) return;
+    try {
+      await api({ action: "addProgram", role: currUser.role, programName: input.value, type }, { post: true, label: "جاري الإضافة..." });
+      input.value = "";
+      refreshData();
+    } catch (e) { showError(e.message); }
+  }
+
+  async function deleteProgramByName(btn) {
+    const name = btn.dataset.name, type = btn.dataset.type;
+    if (!confirm(`تأكيد حذف البرنامج (${name})؟`)) return;
+    try {
+      await api({ action: "deleteProgram", role: currUser.role, programName: name, type }, { post: true, label: "جاري الحذف..." });
+      refreshData();
+    } catch (e) { showError(e.message); }
+  }
+
+  function toggleFollowupFields() {
+    const isChecked = document.getElementById("cIsFollowup").checked;
+    document.getElementById("followupFields")?.classList.toggle("hidden", !isChecked);
+  }
+
+  function updateFollowupDayName() {
+    const dt = document.getElementById("cFollowupDate").value;
+    if (dt) document.getElementById("cFollowupDay").value = daysArabic[new Date(dt + "T00:00:00").getDay()];
+  }
+
   function addSearchDate(v) {
     if (!v) return;
     const y = parseInt(v.slice(0, 4), 10);
-    if (!(y >= 2000 && y <= 2100)) return;   // تجاهل السنة الناقصة أثناء الكتابة
+    if (!(y >= 2000 && y <= 2100)) return;
     if (!searchDates.includes(v)) { searchDates.push(v); searchDates.sort(); }
     const inp = document.getElementById("searchDate");
     if (inp) inp.value = "";
@@ -701,328 +2535,7 @@
     box.classList.remove("hidden");
     box.innerHTML = '<small class="text-muted">السجلات المكتوبة في:</small>' + searchDates.map(d =>
       `<span class="badge rounded-pill bg-primary date-chip">${daysArabic[new Date(d + 'T00:00:00').getDay()]} <span class="num-dir">${d}</span> <i class="fa-solid fa-xmark ms-1" onclick="removeSearchDate('${d}')"></i></span>`
-    ).join("") + '<small class="text-muted">(اختار تاريخ تاني لو عايز تضيف يوم)</small>';
-  }
-
-  function renderClients() {
-    const tbody = document.getElementById("clientsTable");
-    if (!tbody) return;
-    const search = document.getElementById("searchInput")?.value.toLowerCase().trim() || "";
-    const dueMap = new Map(getDueClients().map(d => [String(d.c.id), d]));
-
-    const filtered = allData.clients.filter(c => {
-      const fullText = `${c.name || ''} ${c.phone || ''} ${normalizePhone(c.phone).local} ${c.programName || ''} ${c.status || ''} ${c.agentName || ''}`.toLowerCase();
-      if (!fullText.includes(search)) return false;
-      if (searchDates.length > 0 && !searchDates.includes(c.createdDate)) return false;
-      return true;
-    });
-
-    if (filtered.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-3">لا توجد سجلات</td></tr>';
-      return;
-    }
-
-    tbody.innerHTML = filtered.map((c, idx) => {
-      const p = normalizePhone(c.phone);
-      const progDisplay = c.programCategory === "تركيا" ? `تركيا: ${esc(c.programName)} (${esc(c.turkeySubName)})` : `عمرة: ${esc(c.programName)}`;
-      const due = dueMap.get(String(c.id));
-      return `
-        <tr class="${getStatusRowClass(c.status)}">
-          <td class="fw-bold num-dir">${idx + 1}</td>
-          <td><strong>${esc(c.name)}</strong><br><small class="text-muted num-dir">${esc(c.createdDate)}</small></td>
-          <td>
-            <div class="num-dir fw-bold">${esc(p.local)}</div>
-            <div>${contactButtons(c.phone)}</div>
-          </td>
-          <td>${progDisplay}</td>
-          <td><span class="num-dir">${esc(c.members || 1)}</span> أفراد<br><small class="text-success fw-bold num-dir">${esc(c.price || 0)} ج.م</small></td>
-          <td><span class="badge bg-dark">${esc(c.status)}</span>${due ? '<br>' + dueLabel(due) : ''}</td>
-          <td><small><strong>ف1:</strong> ${esc(c.fb1) || '-'}<br><strong>متابعة:</strong> ${esc(c.fb2) || '-'}</small></td>
-          <td><small class="fw-bold">${esc(c.agentName)}</small></td>
-          <td>
-            <button onclick="editClient('${esc(c.id)}')" class="btn btn-sm btn-outline-dark action-btn-sm" title="تعديل"><i class="fa-solid fa-pen"></i></button>
-            <button onclick="deleteClient('${esc(c.id)}')" class="btn btn-sm btn-outline-danger action-btn-sm" title="حذف"><i class="fa-solid fa-trash"></i></button>
-          </td>
-        </tr>
-      `;
-    }).join("");
-  }
-
-  function renderFollowupClients() {
-    const tbody = document.getElementById("followupTable");
-    if (!tbody) return;
-    const search = document.getElementById("searchFollowupInput")?.value.toLowerCase().trim() || "";
-    const today = localDateStr();
-
-    const list = allData.clients.filter(c => c.isFollowup || c.status === "هياجل لشهر تاني");
-    document.getElementById("followupBadge").innerText = list.length;
-
-    // الأقرب موعداً أولاً، والمؤجل بالشهر في الآخر
-    const filtered = list
-      .filter(c => `${c.name} ${c.phone} ${normalizePhone(c.phone).local} ${c.programName}`.toLowerCase().includes(search))
-      .sort((a, b) => (a.followupDate || '9999').localeCompare(b.followupDate || '9999'));
-
-    tbody.innerHTML = filtered.map((c, idx) => {
-      const p = normalizePhone(c.phone);
-      let dateHtml;
-      if (c.followupDate) {
-        const cls = c.followupDate < today ? 'bg-dark' : (c.followupDate === today ? 'bg-danger' : 'bg-primary');
-        const lbl = c.followupDate < today ? ' (متأخرة)' : (c.followupDate === today ? ' (اليوم)' : '');
-        dateHtml = `<span class="badge ${cls}">${esc(c.followupDay ? c.followupDay + ' ' : '')}${esc(c.followupDate)}${lbl}</span>`;
-      } else {
-        dateHtml = `<span class="badge bg-primary">${esc(c.postponeDate) || '-'}</span>`;
-      }
-      return `
-        <tr class="table-warning">
-          <td class="num-dir">${idx + 1}</td>
-          <td><strong>${esc(c.name)}</strong></td>
-          <td><div class="num-dir fw-bold">${esc(p.local)}</div><div>${contactButtons(c.phone)}</div></td>
-          <td>${dateHtml}</td>
-          <td>${esc(c.programName)}</td>
-          <td>${esc(c.status)}</td>
-          <td><small>${esc(c.fb2 || c.fb1) || '-'}</small></td>
-          <td>${esc(c.agentName)}</td>
-          <td>
-            <button onclick="editClient('${esc(c.id)}')" class="btn btn-sm btn-info text-white action-btn-sm"><i class="fa-solid fa-pen"></i></button>
-            <button onclick="toggleFollowup('${esc(c.id)}', 'لا')" class="btn btn-sm btn-danger action-btn-sm" title="إلغاء المتابعة"><i class="fa-solid fa-xmark"></i></button>
-          </td>
-        </tr>
-      `;
-    }).join("");
-  }
-
-  function renderFinance() {
-    const tbody = document.getElementById("financeTable");
-    if (!tbody) return;
-    tbody.innerHTML = "";
-
-    let totalVault = 0, totalDue = 0, totalContract = 0;
-    const booked = allData.clients.filter(c => c.status === "تم الحجز والتعاقد");
-
-    booked.forEach((c, idx) => {
-      const price = Number(c.price || 0);
-      const paid = Number(c.paidAmount || 0);
-      const due = price - paid;
-
-      totalVault += paid;
-      totalDue += due;
-      totalContract += price;
-
-      const paidBadge = due <= 0 
-        ? `<span class="badge bg-success">مسدد بالكامل</span>`
-        : `<span class="badge bg-warning text-dark">آجل (باقي ${due.toLocaleString()} ج.م)</span>`;
-
-      tbody.innerHTML += `
-        <tr>
-          <td class="num-dir">${idx + 1}</td>
-          <td><strong>${esc(c.name)}</strong></td>
-          <td>${esc(c.agentName)}</td>
-          <td class="num-dir fw-bold">${price.toLocaleString()} ج.م</td>
-          <td class="num-dir text-success fw-bold">${paid.toLocaleString()} ج.م</td>
-          <td class="num-dir text-danger fw-bold">${due.toLocaleString()} ج.م</td>
-          <td>${paidBadge}</td>
-          <td><button onclick="editClient('${c.id}')" class="btn btn-sm btn-outline-primary">تحديث الدفع</button></td>
-        </tr>
-      `;
-    });
-
-    document.getElementById("finVault").innerText = `${totalVault.toLocaleString()} ج.م`;
-    document.getElementById("finDue").innerText = `${totalDue.toLocaleString()} ج.م`;
-    document.getElementById("finTotalContract").innerText = `${totalContract.toLocaleString()} ج.م`;
-  }
-
-  function renderStats() {
-    const uFilter = document.getElementById("statUserFilter")?.value || "ALL";
-    const fromDate = document.getElementById("statFromDate")?.value || "";
-    const toDate = document.getElementById("statToDate")?.value || "";
-    const pFilter = document.getElementById("statProgramFilter")?.value || "ALL";
-
-    let filtered = allData.clients.filter(c => {
-      if (uFilter !== "ALL" && c.agentName !== uFilter) return false;
-      if (pFilter !== "ALL" && c.programName !== pFilter) return false;
-      if (fromDate && c.createdDate && c.createdDate < fromDate) return false;
-      if (toDate && c.createdDate && c.createdDate > toDate) return false;
-      return true;
-    });
-
-    let totalSales = 0, totalBookedMembers = 0, totalComm = 0;
-    const statusCounts = {};
-
-    filtered.forEach(c => {
-      const st = c.status || "غير محدد";
-      statusCounts[st] = (statusCounts[st] || 0) + 1;
-
-      if (st === "تم الحجز والتعاقد") {
-        const members = Number(c.members || 1);
-        totalSales += Number(c.price || 0);
-        totalBookedMembers += members;
-        totalComm += members * 500;
-      }
-    });
-
-    document.getElementById("stSales").innerText = `${totalSales.toLocaleString()} ج.م`;
-    document.getElementById("stBookedCount").innerText = `${totalBookedMembers} أفراد`;
-    document.getElementById("stCommission").innerText = `${totalComm.toLocaleString()} ج.م`;
-    document.getElementById("stTotalClients").innerText = `${filtered.length} عميل`;
-
-    const container = document.getElementById("statusCountsContainer");
-    if (container) {
-      container.innerHTML = "";
-      Object.keys(statusCounts).forEach(st => {
-        container.innerHTML += `
-          <div class="col-md-3 col-6">
-            <div class="card p-2 text-center bg-white border">
-              <small class="text-muted">${esc(st)}</small>
-              <h4 class="m-0 text-primary fw-bold">${statusCounts[st]}</h4>
-            </div>
-          </div>
-        `;
-      });
-    }
-  }
-
-  function onCategoryChange() {
-    const cat = document.getElementById("cProgramCategory").value;
-    const sel = document.getElementById("cProgramName");
-    if (!sel) return;
-    sel.innerHTML = "";
-
-    if (cat === "تركيا") {
-      document.getElementById("turkeySubDiv")?.classList.remove("hidden");
-      allData.turkeyPrograms.forEach(p => sel.innerHTML += `<option value="${p}">${p}</option>`);
-    } else {
-      document.getElementById("turkeySubDiv")?.classList.add("hidden");
-      allData.omraPrograms.forEach(p => sel.innerHTML += `<option value="${p}">${p}</option>`);
-    }
-  }
-
-  function onStatusChange() {
-    const st = document.getElementById("cStatus").value;
-    document.getElementById("customStatusDiv")?.classList.toggle("hidden", st !== "OTHER");
-    document.getElementById("postponeMonthDiv")?.classList.toggle("hidden", st !== "هياجل لشهر تاني");
-    document.getElementById("paymentSectionDiv")?.classList.toggle("hidden", st !== "تم الحجز والتعاقد");
-
-    if (st === "هياجل لشهر تاني") {
-      document.getElementById("cIsFollowup").checked = true;
-      toggleFollowupFields();
-    }
-  }
-
-  function editClient(id) {
-    const c = allData.clients.find(x => String(x.id) === String(id));
-    if (!c) return;
-
-    document.getElementById("cId").value = c.id;
-    document.getElementById("cCreatedDate").value = c.createdDate || "";
-    document.getElementById("cName").value = c.name || "";
-    document.getElementById("cPhone").value = c.phone || "";
-    document.getElementById("cAddress").value = c.address || "";
-    document.getElementById("cMembers").value = c.members || 1;
-    document.getElementById("cProgramCategory").value = c.programCategory || "عمرة";
-    onCategoryChange();
-    document.getElementById("cProgramName").value = c.programName || "";
-    document.getElementById("cTurkeySubName").value = c.turkeySubName || "";
-    document.getElementById("cPrice").value = c.price || "";
-
-    const standardStatuses = ["تم الحجز والتعاقد", "حجز مبدئي", "بيفكر", "هياجل لشهر تاني", "متابعه واتساب", "مش هيحجز", "قفل السكه في وشي", "مش بيرد"];
-    if (standardStatuses.includes(c.status)) {
-      document.getElementById("cStatus").value = c.status;
-    } else {
-      document.getElementById("cStatus").value = "OTHER";
-      document.getElementById("cCustomStatus").value = c.status || "";
-    }
-    onStatusChange();
-
-    document.getElementById("cPostponeMonth").value = c.postponeDate || "يناير";
-    document.getElementById("cPaidAmount").value = c.paidAmount || 0;
-    document.getElementById("cPaymentNotes").value = c.paymentNotes || "";
-
-    document.getElementById("cIsFollowup").checked = (c.isFollowup === true);
-    document.getElementById("cFollowupDate").value = c.followupDate || "";
-    document.getElementById("cFollowupDay").value = c.followupDay || "";
-    document.getElementById("cFb1").value = c.fb1 || "";
-    document.getElementById("cFb2").value = c.fb2 || "";
-
-    toggleFollowupFields();
-    bsClientModal.show();
-  }
-
-  async function saveClient() {
-    const id = document.getElementById("cId").value;
-    const phone = document.getElementById("cPhone").value.trim();
-    const name = document.getElementById("cName").value.trim();
-    if (!name || !phone) return alert("يرجى إدخال اسم العميل ورقم الموبايل!");
-
-    const statusSelect = document.getElementById("cStatus").value;
-    const finalStatus = statusSelect === "OTHER" ? document.getElementById("cCustomStatus").value : statusSelect;
-
-    const query = new URLSearchParams({
-      action: "saveClient",
-      id: id,
-      agentCode: currUser?.code || '',
-      agentName: currUser?.name || currUser?.username || '',
-      name: name,
-      phone: phone,
-      address: document.getElementById("cAddress").value,
-      members: document.getElementById("cMembers").value,
-      programCategory: document.getElementById("cProgramCategory").value,
-      programName: document.getElementById("cProgramName").value,
-      turkeySubName: document.getElementById("cTurkeySubName").value,
-      price: document.getElementById("cPrice").value,
-      status: finalStatus,
-      postponeDate: document.getElementById("cPostponeMonth").value,
-      paidAmount: document.getElementById("cPaidAmount").value,
-      paymentNotes: document.getElementById("cPaymentNotes").value,
-      isFollowup: document.getElementById("cIsFollowup").checked ? "نعم" : "لا",
-      followupDate: document.getElementById("cFollowupDate").value,
-      followupDay: document.getElementById("cFollowupDay").value,
-      createdDate: document.getElementById("cCreatedDate").value || localDateStr(),
-      fb1: document.getElementById("cFb1").value,
-      fb2: document.getElementById("cFb2").value
-    });
-
-    try {
-      const res = await fetch(`${API}?${query.toString()}`);
-      let result = null;
-      try { result = await res.json(); } catch (e) { /* رد غير JSON: نكمل */ }
-      if (result && result.status === "error") {
-        return alert("تعذر الحفظ: " + (result.message || "خطأ غير معروف"));
-      }
-    } catch (err) {
-      return alert("تعذر الاتصال بالسيرفر، تأكد من الإنترنت وحاول تاني.");
-    }
-    bsClientModal.hide();
-    refreshData();
-  }
-
-  async function toggleFollowup(id, status) {
-    await fetch(`${API}?action=toggleFollowup&id=${id}&status=${encodeURIComponent(status)}`);
-    refreshData();
-  }
-
-  async function deleteClient(id) {
-    if (!confirm("تأكيد حذف العميل؟")) return;
-    await fetch(`${API}?action=deleteClient&id=${id}`);
-    refreshData();
-  }
-
-  async function addProgram(type) {
-    const inputId = type === 'تركيا' ? 'npTurkeyName' : 'npOmraName';
-    const input = document.getElementById(inputId);
-    if (!input || !input.value) return;
-    await fetch(`${API}?action=addProgram&programName=${encodeURIComponent(input.value)}&type=${encodeURIComponent(type)}`);
-    input.value = "";
-    refreshData();
-  }
-
-  function toggleFollowupFields() {
-    const isChecked = document.getElementById("cIsFollowup").checked;
-    document.getElementById("followupFields")?.classList.toggle("hidden", !isChecked);
-  }
-
-  function updateFollowupDayName() {
-    const dt = document.getElementById("cFollowupDate").value;
-    if (dt) document.getElementById("cFollowupDay").value = daysArabic[new Date(dt + "T00:00:00").getDay()];
+    ).join("");
   }
 
   function clearDateFilter() {
@@ -1036,8 +2549,12 @@
   function switchTab(tab) {
     document.querySelectorAll("#mainTabs .nav-link").forEach(a => a.classList.remove("active"));
     document.getElementById(`t-${tab}`)?.classList.add("active");
-    ["clients", "followup", "finance", "stats", "settings"].forEach(s => document.getElementById(`sec-${s}`)?.classList.add("hidden"));
+    ["clients", "followup", "pending", "requests", "finance", "stats", "settings", "users"].forEach(s => {
+      const el = document.getElementById(`sec-${s}`);
+      if (el) el.classList.add("hidden");
+    });
     document.getElementById(`sec-${tab}`)?.classList.remove("hidden");
+    if (tab === "stats") renderStats();
   }
 
   function openClientModal() {
@@ -1047,10 +2564,93 @@
     document.getElementById("cStatus").selectedIndex = 0;
     document.getElementById("cPostponeMonth").selectedIndex = 0;
     document.getElementById("cProgramCategory").value = "عمرة";
+    lastAutoPrice = "";
+    completionFor = null;
+    document.getElementById("completionBanner").classList.add("hidden");
+    currentTrip = { programId: "", details: null };
     onCategoryChange();
     onStatusChange();
     toggleFollowupFields();
     bsClientModal.show();
+  }
+
+  function getStatusRowClass(status) {
+    if (!status) return "";
+    const st = String(status).trim();
+    if (st === "هيحجز") return "row-willbook";
+    if (st.includes("تم الحجز والتعاقد")) return "table-success";
+    if (st.includes("حجز مبدئي")) return "table-info";
+    if (st.includes("بيفكر")) return "table-warning";
+    if (st.includes("هياجل")) return "table-secondary";
+    if (st.includes("مش") || st.includes("قفل")) return "table-danger";
+    return "";
+  }
+
+  // =================== طباعة استمارة / عقد العميل ===================
+  function printClient(id) {
+    const c = allData.clients.find(x => String(x.id) === String(id));
+    if (!c) return alert("احفظ العميل أولاً ثم اطبع الاستمارة");
+    const p = normalizePhone(c.phone);
+    let d = c.tripDetails;
+    if (!d) {
+      const pr = allData.programs.find(x => x.category === c.programCategory && x.name === c.programName);
+      d = pr ? pr.details : null;
+    }
+    const price = Number(c.price || 0), paid = Number(c.paidAmount || 0);
+    const rows = d ? tripSummaryRows(c.programCategory || "عمرة", d) : [];
+    const tr = (l, v) => `<tr><th>${l}</th><td>${v}</td></tr>`;
+
+    const html = `<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>استمارة حجز - ${esc(c.name)}</title>
+      <style>
+        @page { size: A4; margin: 14mm; }
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; color: #111; font-size: 13px; }
+        .hdr { text-align: center; border-bottom: 3px double #0d6efd; padding-bottom: 8px; margin-bottom: 12px; }
+        .hdr h1 { margin: 0; color: #0d6efd; font-size: 24px; }
+        .hdr h2 { margin: 4px 0; font-size: 17px; }
+        .meta { display: flex; justify-content: space-between; font-size: 12px; color: #444; }
+        h3 { background: #0d6efd; color: #fff; padding: 4px 10px; margin: 14px 0 6px; font-size: 14px; border-radius: 4px; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { border: 1px solid #999; padding: 5px 8px; text-align: right; vertical-align: top; }
+        th { background: #eef3fb; width: 30%; }
+        .terms { font-size: 12px; margin-top: 12px; line-height: 1.8; }
+        .sign { display: flex; justify-content: space-between; margin-top: 40px; text-align: center; }
+        .sign div { width: 30%; border-top: 1px solid #333; padding-top: 6px; }
+      </style></head><body>
+      <div class="hdr"><h1>${esc(COMPANY_NAME)}</h1><h2>استمارة حجز / عقد اتفاق</h2>
+        <div class="meta"><span>رقم الاستمارة: ${esc(c.id)}</span><span>تاريخ التسجيل: ${esc(c.createdDate)}</span><span>تاريخ الطباعة: ${localDateStr()}</span></div></div>
+      <h3>بيانات العميل</h3>
+      <table>${tr("اسم العميل", esc(c.name))}${tr("رقم الموبايل", `<span dir="ltr">${esc(p.local)}</span>`)}${tr("العنوان", esc(c.address) || "—")}${tr("عدد الأفراد", esc(c.members || 1))}${tr("الموظف المسؤول", esc(c.agentName) + (c.agentCode ? " (" + esc(c.agentCode) + ")" : ""))}</table>
+      <h3>بيانات الرحلة</h3>
+      <table>${tr("نوع الرحلة", esc(c.programCategory))}${tr("البرنامج", esc(c.programName) + (c.turkeySubName ? " - " + esc(c.turkeySubName) : ""))}${rows.map(r => tr(esc(r.l), r.v)).join("")}</table>
+      <h3>البيانات المالية</h3>
+      <table>${tr("إجمالي العقد", price.toLocaleString() + " ج.م")}${tr("المدفوع", paid.toLocaleString() + " ج.م")}${tr("المتبقي", (price - paid).toLocaleString() + " ج.م")}${tr("ملاحظات الدفع", esc(c.paymentNotes) || "—")}${tr("حالة الحجز", esc(c.status))}</table>
+      <p class="terms">يقر العميل بصحة البيانات الواردة بهذه الاستمارة، وبموافقته على شروط البرنامج الموضحة أعلاه وعلى التزامه بسداد المستحقات في مواعيدها.</p>
+      <div class="sign"><div>توقيع العميل</div><div>الموظف المسؤول</div><div>ختم الشركة</div></div>
+      </body></html>`;
+
+    const iframe = document.createElement("iframe");
+    iframe.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0;";
+    document.body.appendChild(iframe);
+    const doc = iframe.contentWindow.document;
+    doc.open(); doc.write(html); doc.close();
+    setTimeout(() => { iframe.contentWindow.focus(); iframe.contentWindow.print(); }, 350);
+    setTimeout(() => iframe.remove(), 120000);
+  }
+
+  window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredInstall = e; toggleInstallBtns(true); });
+  window.addEventListener('appinstalled', () => toggleInstallBtns(false));
+  function toggleInstallBtns(show) {
+    document.querySelectorAll('.install-btn').forEach(b => b.classList.toggle('hidden', !show));
+  }
+  async function installApp() {
+    if (deferredInstall) {
+      deferredInstall.prompt();
+      await deferredInstall.userChoice;
+      deferredInstall = null;
+      toggleInstallBtns(false);
+    } else if (isIOS) {
+      alert('علشان تثبّت التطبيق على الآيفون:\n1) اضغط زر المشاركة (Share) في سفاري\n2) اختار «إضافة إلى الشاشة الرئيسية»');
+    }
   }
 </script>
 </body>
