@@ -229,6 +229,48 @@
 @media (max-width: 575.98px){ .detail-grid{ grid-template-columns:1fr; } }
 
 
+    /* ============ تصميم Techtown لكروت الحالات + الأنيميشن ============ */
+    .tt-card{ display:flex; align-items:center; gap:10px; background:var(--card-bg); border:1px solid var(--border); border-radius:16px; padding:12px 14px; position:relative; box-shadow:var(--shadow); transition:transform .2s, box-shadow .2s; }
+    .tt-card:hover{ transform:translateY(-3px); box-shadow:var(--shadow-lg); }
+    .tt-avatar{ width:40px; height:40px; border-radius:12px; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:17px; flex-shrink:0; }
+    .tt-body{ min-width:0; flex:1; }
+    .tt-name{ font-weight:800; font-size:13.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .tt-meta{ font-size:11px; color:var(--muted); }
+    .tt-tag{ position:absolute; top:-8px; inset-inline-end:10px; color:#fff; font-size:10px; font-weight:700; padding:2px 10px; border-radius:10px 10px 10px 0; }
+    .top-seller-card{ display:flex; gap:10px; align-items:center; background:linear-gradient(135deg,rgba(247,144,9,.15),rgba(108,92,231,.12)); border:1.5px solid var(--warning); border-radius:16px; padding:12px; margin:4px 12px; position:relative; overflow:hidden; }
+    .top-seller-card::after{ content:""; position:absolute; top:0; left:-80%; width:50%; height:100%; background:linear-gradient(100deg,transparent,rgba(255,255,255,.35),transparent); animation:crmShimmer 2.6s infinite; }
+    @keyframes crmShimmer{ 0%{ left:-80%; } 100%{ left:130%; } }
+    .trophy{ width:42px; height:42px; border-radius:50%; background:linear-gradient(135deg,#f79009,#f56c0a); color:#fff; display:flex; align-items:center; justify-content:center; font-size:19px; box-shadow:0 6px 14px rgba(247,144,9,.4); animation:crmPulse 2s infinite; flex-shrink:0; }
+    .drill-chk{ width:16px; height:16px; cursor:pointer; }
+
+    /* ============ v5.4: مودالات ملء شاشة الموبايل ============ */
+    @media (max-width: 575.98px){
+      .modal-dialog{ margin:0 !important; max-width:100% !important; width:100% !important; }
+      .modal-dialog-centered{ align-items:stretch !important; }
+      .modal-content{ min-height:100vh; border-radius:0 !important; }
+      .modal-dialog-scrollable .modal-content{ max-height:100vh; }
+      .modal.fade .modal-dialog{ transition:transform .28s ease-out; }
+    }
+    /* ============ v5.4: سايدبار سلس - عناصر محددة هي اللي بتتحرك ============ */
+    .sidebar{ transition:transform .38s cubic-bezier(.22,.8,.28,1); }
+    .sidebar.open #mainTabs .nav-item{ animation:crmNavIn .35s both; }
+    .sidebar.open #mainTabs .nav-item:nth-child(1){ animation-delay:.02s; }
+    .sidebar.open #mainTabs .nav-item:nth-child(2){ animation-delay:.05s; }
+    .sidebar.open #mainTabs .nav-item:nth-child(3){ animation-delay:.08s; }
+    .sidebar.open #mainTabs .nav-item:nth-child(4){ animation-delay:.11s; }
+    .sidebar.open #mainTabs .nav-item:nth-child(5){ animation-delay:.14s; }
+    .sidebar.open #mainTabs .nav-item:nth-child(6){ animation-delay:.17s; }
+    .sidebar.open #mainTabs .nav-item:nth-child(7){ animation-delay:.20s; }
+    .sidebar.open #mainTabs .nav-item:nth-child(8){ animation-delay:.23s; }
+    .sidebar.open .side-section{ animation:crmNavIn .4s .1s both; }
+    @keyframes crmNavIn{ from{ opacity:0; transform:translateX(18px); } to{ opacity:1; transform:none; } }
+    /* ============ v5.4: كروت إحصائيات نظيفة زي الصورة ============ */
+    .stat-dash{ background:var(--card-bg) !important; color:var(--text); border:1px solid var(--border) !important; box-shadow:var(--shadow); padding:16px 18px; }
+    .stat-dash::after{ display:none; }
+    .stat-dash .lbl{ color:var(--muted); font-size:12px; font-weight:700; }
+    .stat-dash .val{ font-size:1.55rem; font-weight:800; margin:2px 0 0; }
+    .stat-dash .ic{ width:40px; height:40px; border-radius:12px; display:flex; align-items:center; justify-content:center; color:#fff; font-size:16px; flex-shrink:0; }
+
     /* ============ شاشة الدخول ============ */
     .login-card{
       max-width:420px; margin:7vh auto 0; padding:38px 30px; border-radius:24px !important; text-align:center;
@@ -292,6 +334,7 @@
       .topbar-title span.txt{ display:none; }
     }
   </style>
+<base target="_blank">
 </head>
 <body>
 
@@ -334,6 +377,7 @@
     </div>
   </div>
 
+  <div id="topSellerBox"></div>
   <div class="sidebar-body">
   <div class="nav-section-label">القائمة الرئيسية</div>
   <ul class="nav" id="mainTabs">
@@ -341,6 +385,7 @@
     <li class="nav-item"><a class="nav-link" id="t-followup" href="#" onclick="switchTab('followup'); toggleSidebar(false); return false;"><i class="fa-solid fa-clock-rotate-left"></i> صفحة المتابعة <span id="followupBadge" class="badge bg-warning text-dark">0</span></a></li>
     <li class="nav-item hidden admin-or-tech"><a class="nav-link" id="t-pending" href="#" onclick="switchTab('pending'); toggleSidebar(false); return false;"><i class="fa-solid fa-hourglass-half"></i> شاشة قيد الحجز <span id="pendingBadge" class="badge badge-purple">0</span></a></li>
     <li class="nav-item hidden admin-or-tech"><a class="nav-link" id="t-requests" href="#" onclick="switchTab('requests'); toggleSidebar(false); return false;"><i class="fa-solid fa-envelope-open-text"></i> طلبات تعديل الرحلات <span id="requestsBadge" class="badge bg-danger">0</span></a></li>
+    <li class="nav-item hidden admin-or-tech"><a class="nav-link" id="t-archive" href="#" onclick="switchTab('archive'); toggleSidebar(false); loadArchive(1); return false;"><i class="fa-solid fa-box-archive"></i> أرشيف العملاء المفقودين</a></li>
     <li class="nav-item"><a class="nav-link" id="t-finance" href="#" onclick="switchTab('finance'); toggleSidebar(false); return false;"><i class="fa-solid fa-wallet"></i> الخزنة والدفع والآجل</a></li>
     <li class="nav-item"><a class="nav-link" id="t-stats" href="#" onclick="switchTab('stats'); toggleSidebar(false); return false;"><i class="fa-solid fa-chart-pie"></i> الإحصائيات و KPIs</a></li>
     <li class="nav-item hidden admin-or-tech"><a class="nav-link" id="t-settings" href="#" onclick="switchTab('settings'); toggleSidebar(false); return false;"><i class="fa-solid fa-gear"></i> إدارة البرامج والسيستم</a></li>
@@ -368,6 +413,15 @@
     </div></div>
   </div>
 
+  <div class="side-section hidden admin-or-tech">
+    <button type="button" class="side-head" data-bs-toggle="collapse" data-bs-target="#pnlBroadcast" aria-expanded="false"><span><i class="fa-solid fa-bullhorn me-2" style="color:var(--info)"></i>ملاحظة للجميع</span><i class="fa-solid fa-chevron-down chev"></i></button>
+    <div class="collapse" id="pnlBroadcast"><div class="side-body">
+      <div class="small text-muted mb-2">ملاحظة من المدير يشوفها كل الموظفين في التنبيهات.</div>
+      <textarea id="broadcastText" class="form-control form-control-sm mb-2" rows="2" placeholder="اكتب الملاحظة العامة..."></textarea>
+      <button type="button" class="btn btn-sm btn-info text-white w-100" onclick="sendBroadcast()"><i class="fa-solid fa-paper-plane me-1"></i> إرسال للجميع</button>
+    </div></div>
+  </div>
+
   <div class="side-section">
     <button type="button" class="side-head" data-bs-toggle="collapse" data-bs-target="#pnlDate" aria-expanded="false"><span><i class="fa-regular fa-calendar me-2" style="color:var(--primary)"></i>فلتر التاريخ</span><i class="fa-solid fa-chevron-down chev"></i></button>
     <div class="collapse" id="pnlDate"><div class="side-body">
@@ -381,6 +435,16 @@
   </div>
   </div>
 
+
+  <div class="side-section mt-1">
+    <button type="button" class="side-head" data-bs-toggle="collapse" data-bs-target="#pnlAbout" aria-expanded="false"><span><i class="fa-solid fa-circle-info me-2" style="color:var(--primary)"></i>حول</span><i class="fa-solid fa-chevron-down chev"></i></button>
+    <div class="collapse" id="pnlAbout"><div class="side-body text-center py-2">
+      <div class="brand-logo mx-auto mb-2" style="width:52px;height:52px;font-size:22px"><i class="fa-solid fa-kaaba"></i></div>
+      <div class="fw-bold" style="font-size:13px">نظام إدارة المعتمرين CRM</div>
+      <div class="small fw-bold mb-2" style="color:var(--primary)">الإصدار 5.4v</div>
+      <div class="dt-box small text-start">تطوير: <b>حسام عبده</b><br>الدعم الفني: <b>حسام عبده</b></div>
+    </div></div>
+  </div>
 
   <div class="sidebar-footer">
     <button onclick="logout()" class="btn-logout"><i class="fa-solid fa-right-from-bracket"></i> تسجيل الخروج</button>
@@ -465,6 +529,7 @@
           </table>
         </div>
         <div class="d-lg-none" id="clientsMobile"></div>
+        <div id="clientsPager" class="d-flex justify-content-between align-items-center flex-wrap gap-2 mt-2"></div>
       </div>
 
       <!-- صفحة المتابعة -->
@@ -521,6 +586,28 @@
           </table>
         </div>
         <div class="d-lg-none" id="pendingMobile"></div>
+      </div>
+
+      <!-- أرشيف العملاء المفقودين -->
+      <div id="sec-archive" class="card section-card shadow-sm hidden" style="border-top:4px solid var(--danger);">
+        <div class="row g-2 mb-3 align-items-center">
+          <div class="col-md-6"><h5 class="m-0" style="color:var(--danger)"><i class="fa-solid fa-box-archive me-2"></i>أرشيف العملاء المفقودين</h5></div>
+          <div class="col-md-6">
+            <div class="input-group">
+              <span class="input-group-text"><i class="fa-solid fa-magnifying-glass"></i></span>
+              <input type="text" id="searchArchiveInput" class="form-control" placeholder="بحث في الأرشيف..." onkeyup="loadArchive(1)">
+            </div>
+          </div>
+        </div>
+        <p class="text-muted small mb-2">العملاء في الحالات المفقودة (مش هيحجز / قفل السكه / مش بيرد) بيتحولوا هنا تلقائياً عشان الشيت الرئيسي يفضل سريع.</p>
+        <div class="d-none d-lg-block">
+          <table class="table align-middle crm-table">
+            <thead><tr><th>#</th><th>اسم العميل</th><th>التواصل</th><th>البرنامج</th><th>الحالة</th><th>الموظف</th><th style="width:44px"></th></tr></thead>
+            <tbody id="archiveTable"></tbody>
+          </table>
+        </div>
+        <div class="d-lg-none" id="archiveMobile"></div>
+        <div id="archivePager" class="d-flex justify-content-between align-items-center flex-wrap gap-2 mt-2"></div>
       </div>
 
       <!-- طلبات تعديل بيانات الرحلات -->
@@ -582,27 +669,43 @@
         <p class="text-muted small mb-2"><i class="fa-solid fa-hand-pointer me-1"></i> اضغط على أي كارت إحصائي لعرض تفاصيل العملاء والموظفين بداخلها (والمديرين يقدرون يبعتوا تنبيه للموظف):</p>
         <div class="row g-3 mb-4">
           <div class="col-md-3 col-6">
-            <div class="card stat-card clickable-card" style="background:linear-gradient(135deg,#6c5ce7,#8e7bff)" onclick="openStatDrilldown('المبيعات المؤكدة')">
-              <h6>إجمالي المبيعات المؤكدة</h6>
-              <h3 id="stSales">0 ج.م</h3>
+            <div class="card stat-card stat-dash clickable-card" onclick="openStatDrilldown('المبيعات المؤكدة')">
+              <div class="d-flex justify-content-between align-items-start gap-2">
+                <div><div class="lbl">إجمالي المبيعات المؤكدة</div><h3 class="val m-0" style="color:var(--primary)" id="stSales">0 ج.م</h3></div>
+                <div class="ic" style="background:linear-gradient(135deg,#6c5ce7,#8e7bff)"><i class="fa-solid fa-sack-dollar"></i></div>
+              </div>
             </div>
           </div>
           <div class="col-md-3 col-6">
-            <div class="card stat-card clickable-card" style="background:linear-gradient(135deg,#12b76a,#0a9b57)" onclick="openStatDrilldown('تم الحجز والتعاقد')">
-              <h6>أفراد (تم الحجز والتعاقد)</h6>
-              <h3 id="stBookedCount">0 أفراد</h3>
+            <div class="card stat-card stat-dash clickable-card" onclick="openStatDrilldown('تم الحجز والتعاقد')">
+              <div class="d-flex justify-content-between align-items-start gap-2">
+                <div><div class="lbl">أفراد (تم الحجز والتعاقد)</div><h3 class="val m-0" style="color:var(--success)" id="stBookedCount">0 أفراد</h3></div>
+                <div class="ic" style="background:linear-gradient(135deg,#12b76a,#0a9b57)"><i class="fa-solid fa-users"></i></div>
+              </div>
             </div>
           </div>
           <div class="col-md-3 col-6">
-            <div class="card stat-card clickable-card" style="background:linear-gradient(135deg,#f79009,#f56c0a)" onclick="openStatDrilldown('العمولات')">
-              <h6>إجمالي العمولات المستحقة (500ج/فرد)</h6>
-              <h3 id="stCommission">0 ج.م</h3>
+            <div class="card stat-card stat-dash clickable-card" onclick="openStatDrilldown('العمولات')">
+              <div class="d-flex justify-content-between align-items-start gap-2">
+                <div><div class="lbl">إجمالي العمولات (شرائح)</div><h3 class="val m-0" style="color:var(--warning)" id="stCommission">0 ج.م</h3></div>
+                <div class="ic" style="background:linear-gradient(135deg,#f79009,#f56c0a)"><i class="fa-solid fa-coins"></i></div>
+              </div>
             </div>
           </div>
           <div class="col-md-3 col-6">
-            <div class="card stat-card clickable-card" style="background:linear-gradient(135deg,#0ea5e9,#0284c7)" onclick="openStatDrilldown('الكل')">
-              <h6>إجمالي جميع المعاملات</h6>
-              <h3 id="stTotalClients">0 عميل</h3>
+            <div class="card stat-card stat-dash clickable-card" onclick="openStatDrilldown('الكل')">
+              <div class="d-flex justify-content-between align-items-start gap-2">
+                <div><div class="lbl">إجمالي جميع المعاملات</div><h3 class="val m-0" style="color:var(--info)" id="stTotalClients">0 عميل</h3></div>
+                <div class="ic" style="background:linear-gradient(135deg,#0ea5e9,#0284c7)"><i class="fa-solid fa-address-book"></i></div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-3 col-6">
+            <div class="card stat-card stat-dash clickable-card" onclick="openStatDrilldown('متوقع')">
+              <div class="d-flex justify-content-between align-items-start gap-2">
+                <div><div class="lbl">الحجوزات المتوقعة (تحليل الحالات)</div><h3 class="val m-0" style="color:#8b5cf6" id="stExpected">0 عميل</h3></div>
+                <div class="ic" style="background:linear-gradient(135deg,#8b5cf6,#6d28d9)"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
+              </div>
             </div>
           </div>
         </div>
@@ -650,10 +753,17 @@
               </div>
             </div>
             <div class="col-md-3 col-6">
-              <div class="card p-3 text-center kpi-card h-100 clickable-card" onclick="openStatDrilldown('هيحجز')">
+              <div class="card p-3 text-center kpi-card h-100 clickable-card" onclick="openStatDrilldown('SUPERVISOR')">
                 <small class="fw-bold text-muted">قيد الحجز (هيحجز)</small>
                 <h2 id="kpiPending" class="my-1" style="color:var(--primary)">0</h2>
                 <small class="text-muted">(عملاء عند المشرف لاستكمال الحجز)</small>
+              </div>
+            </div>
+            <div class="col-md-3 col-6">
+              <div class="card p-3 text-center kpi-card h-100 clickable-card" onclick="openStatDrilldown('متوقع')">
+                <small class="fw-bold text-muted">الحجوزات المتوقعة</small>
+                <h2 id="kpiExpected" class="my-1" style="color:#8b5cf6">0</h2>
+                <small class="text-muted">(بيفكر / مبدئي / هيحجز / Near Closed / واتساب)</small>
               </div>
             </div>
             <div class="col-md-3 col-6">
@@ -774,8 +884,16 @@
               <h6 class="fw-bold"><i class="fa-solid fa-bullseye me-1 text-danger"></i> أهداف KPI الشهرية</h6>
               <div class="row g-2 align-items-end">
                 <div class="col-md-4"><label class="form-label small">هدف المبيعات الشهري (ج.م)</label><input type="number" id="tgSalesInput" class="form-control num-dir" min="0"></div>
-                <div class="col-md-4"><label class="form-label small">هدف عدد الأفراد المتعاقدين شهرياً</label><input type="number" id="tgPersonsInput" class="form-control num-dir" min="0"></div>
-                <div class="col-md-4"><button class="btn btn-danger w-100" onclick="saveTargets()">حفظ الأهداف</button></div>
+                <div class="col-md-4"><label class="form-label small">هدف عدد الأفراد المتعاقدين شهرياً لكل موظف</label><input type="number" id="tgPersonsInput" class="form-control num-dir" min="0"></div>
+                <div class="col-md-4"><button class="btn btn-danger w-100" onclick="saveTargets()">حفظ الأهداف والعمولات</button></div>
+              </div>
+              <div class="row g-2 mt-2 p-2 rounded" style="background:var(--card-bg);border:1px dashed var(--warning)">
+                <div class="col-12 small fw-bold" style="color:var(--warning)"><i class="fa-solid fa-layer-group me-1"></i> شرائح العمولة الشهرية (تُطبق بأثر رجعي على إجمالي الأفراد المؤكدين المحصلين):</div>
+                <div class="col-md-3 col-6"><label class="form-label small">أقل من (فرد) &rarr; عمولة/فرد</label><div class="input-group input-group-sm"><input type="number" id="comBreak1" class="form-control num-dir" placeholder="20"><input type="number" id="comRate1" class="form-control num-dir" placeholder="50"></div></div>
+                <div class="col-md-3 col-6"><label class="form-label small">من (فرد) &rarr; عمولة/فرد</label><div class="input-group input-group-sm"><input type="number" id="comBreak2" class="form-control num-dir" placeholder="20"><input type="number" id="comRate2" class="form-control num-dir" placeholder="75"></div></div>
+                <div class="col-md-3 col-6"><label class="form-label small">من (فرد) &rarr; عمولة/فرد</label><div class="input-group input-group-sm"><input type="number" id="comBreak3" class="form-control num-dir" placeholder="25"><input type="number" id="comRate3" class="form-control num-dir" placeholder="90"></div></div>
+                <div class="col-md-3 col-6"><label class="form-label small">من (فرد) &rarr; عمولة/فرد</label><div class="input-group input-group-sm"><input type="number" id="comBreak4" class="form-control num-dir" placeholder="30"><input type="number" id="comRate4" class="form-control num-dir" placeholder="100"></div></div>
+                <div class="col-12 small text-muted">مثال افتراضي: &lt;20 &rarr; 50ج &bull; 20-24 &rarr; 75ج &bull; 25-29 &rarr; 90ج &bull; 30+ &rarr; 100ج. العمولة على الحجز المؤكد المحصل فقط.</div>
               </div>
             </div>
           </div>
@@ -946,10 +1064,17 @@
       </div>
       <div class="modal-body">
         <div id="statDrillEmployees" class="d-flex flex-wrap gap-2 mb-3"></div>
+        <div id="drillTransferBar" class="d-flex flex-wrap gap-2 align-items-center mb-3 p-2 rounded hidden" style="background:var(--hover-bg);border:1.5px dashed var(--primary)">
+          <span class="fw-bold small"><i class="fa-solid fa-share-nodes me-1" style="color:var(--primary)"></i> نقل / مشاركة العملاء المحددين (✔) إلى موظف:</span>
+          <select id="drillEmpSelect" class="form-select form-select-sm w-auto"></select>
+          <button class="btn btn-sm btn-primary" onclick="transferSelectedClients()"><i class="fa-solid fa-paper-plane me-1"></i> نقل المحدد</button>
+          <small class="text-muted">العملاء هيوصلوا للموظف الجديد في قائمته عشان يتابع معاهم.</small>
+        </div>
         <div class="table-responsive">
           <table class="table table-bordered align-middle" style="font-size:.85rem;">
             <thead style="background:var(--hover-bg)">
               <tr>
+                <th><input type="checkbox" id="drillAllChk" onchange="toggleDrillAll(this)" title="تحديد الكل"></th>
                 <th>#</th>
                 <th>اسم العميل</th>
                 <th>الهاتف</th>
@@ -961,7 +1086,7 @@
                 <th>إجراء</th>
               </tr>
             </thead>
-            <tbody id="statDrillTable"></tbody>
+            <tbody id="statDrillTable" style="cursor:pointer"></tbody>
           </table>
         </div>
       </div>
@@ -1051,11 +1176,25 @@
 
           <div class="col-md-6"><label class="form-label small fw-bold">السعر المتفق عليه (الإجمالي)</label><input type="number" id="cPrice" class="form-control num-dir"></div>
 
+          <div class="col-md-6 hidden" id="roomTypeDiv">
+            <label class="form-label small fw-bold" style="color:var(--warning)"><i class="fa-solid fa-bed me-1"></i> نوع الغرفة (سعر الفرد يُسحب تلقائياً)</label>
+            <select id="cRoomType" class="form-select" onchange="onRoomTypeChange()">
+              <option value="">— اختر الغرفة —</option>
+              <option value="double">ثنائية (Double)</option>
+              <option value="triple">ثلاثية (Triple)</option>
+              <option value="quad">رباعية (Quad)</option>
+              <option value="quint">خماسية (Quint)</option>
+              <option value="child">طفل (Child)</option>
+              <option value="infant">رضيع (Infant)</option>
+            </select>
+          </div>
+
           <div class="col-md-6">
             <label class="form-label small fw-bold">حالة الحجز</label>
             <select id="cStatus" class="form-select" onchange="onStatusChange()">
               <option value="تم الحجز والتعاقد">تم الحجز والتعاقد</option>
               <option value="هيحجز">هيحجز (قيد الحجز - يتحول للمشرف)</option>
+              <option value="Near Closed">Near Closed (قريب من الحجز - يتحول للمشرف)</option>
               <option value="حجز مبدئي">حجز مبدئي</option>
               <option value="بيفكر">بيفكر</option>
               <option value="هياجل لشهر تاني">هياجل لشهر تاني</option>
@@ -1126,6 +1265,11 @@
           <div class="col-md-4"><label class="form-label small">الفيدباك 1</label><input type="text" id="cFb1" class="form-control"></div>
           <div class="col-md-4"><label class="form-label small">شرح وتحديث المتابعة (الفيدباك 2)</label><input type="text" id="cFb2" class="form-control" placeholder="ماذا حدث عند المتابعة بتاريخ اليوم..."></div>
           <div class="col-md-4"><label class="form-label small">الفيدباك 3</label><input type="text" id="cFb3" class="form-control"></div>
+
+          <div class="col-md-12 admin-or-tech hidden" id="supervisorNoteDiv">
+            <label class="form-label small fw-bold" style="color:var(--info)"><i class="fa-solid fa-user-shield me-1"></i> خانة متابعة المشرف (تظهر للمديرين فقط)</label>
+            <textarea id="cSupervisorNote" class="form-control" rows="2" placeholder="المدير يكتب هنا ملاحظة متابعة عن العميل (ماذا تم / ما المطلوب)..."></textarea>
+          </div>
         </div>
       </div>
       <div class="modal-footer">
@@ -1581,6 +1725,7 @@
       renderStatusColors();
       renderListsPanel();
       renderProgramsAdmin();
+      renderTopSeller();
       fillTargetInputs();
       checkTodayNotifications(false);
 
@@ -1634,6 +1779,11 @@
 
   let searchDates = [];
   let deferredInstall = null;
+  let clientsPage = 1;
+  const CLIENTS_PER_PAGE = 50;
+  let clientsFilterKey = "";
+  let archiveCache = [];
+  let archivePage = 1, archiveTotal = 0;
   const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
   const isStandalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
 
@@ -1683,9 +1833,12 @@
     "متابعه واتساب":     "#14b8a6",
     "مش هيحجز":          "#f43f5e",
     "قفل السكه في وشي":  "#be123c",
-    "مش بيرد":           "#fb923c"
+    "مش بيرد":           "#fb923c",
+    "Near Closed":        "#0284c7"
   };
   const STATUS_CUSTOM_COLOR = "#ec4899";
+  const SUPERVISOR_STATUSES = ["هيحجز", "Near Closed"];
+  const EXPECTED_STATUSES = ["بيفكر", "حجز مبدئي", "هيحجز", "Near Closed", "متابعه واتساب"];
   let statusColors = {};
   try { statusColors = JSON.parse(localStorage.getItem("crm_status_colors") || "{}") || {}; } catch (e) { statusColors = {}; }
 
@@ -1778,7 +1931,7 @@
 
   // =================== تفاصيل العميل ===================
   function openClientDetails(id) {
-    const c = allData.clients.find(x => String(x.id) === String(id));
+    const c = allData.clients.find(x => String(x.id) === String(id)) || archiveCache.find(x => String(x.id) === String(id));
     if (!c) return;
     const p = normalizePhone(c.phone);
     const col = statusColor(c.status);
@@ -1824,6 +1977,7 @@
     html += box('موعد المتابعة', fu);
     html += box('تاريخ التسجيل', `<span class="num-dir">${esc(c.createdDate || '—')}</span>`);
     html += box('الفيدباك', `<strong>ف1:</strong> ${esc(c.fb1) || '-'}<br><strong>متابعة:</strong> ${esc(c.fb2) || '-'}<br><strong>ف3:</strong> ${esc(c.fb3) || '-'}`, true);
+    if (isManagerRole() && c.supervisorNote) html += box('متابعة المشرف', esc(c.supervisorNote), true);
     if (rows.length) {
       html += '<div class="full fw-bold mt-1" style="color:var(--primary)"><i class="fa-solid fa-suitcase-rolling me-1"></i> تفاصيل البرنامج</div>';
       rows.forEach(r => { html += box(esc(r.l), r.v); });
@@ -1848,6 +2002,63 @@
       else if (kind === 'list') openListPicker(id);
     }, { once: true });
     bsDetailModal.hide();
+  }
+
+  // =================== الأرشيف: صفحات 50 سجل من السيرفر ===================
+  async function loadArchive(page) {
+    if (!currUser) return;
+    archivePage = page || 1;
+    try {
+      const data = await api({
+        action: "getArchive", role: currUser.role,
+        code: currUser.code || "", username: currUser.username || currUser.name || "", name: currUser.name || "",
+        q: document.getElementById("searchArchiveInput")?.value || "", page: archivePage
+      }, { label: "جاري تحميل الأرشيف..." });
+      archiveCache = Array.isArray(data.clients) ? data.clients : [];
+      archiveTotal = data.total || 0;
+      archivePage = data.page || 1;
+      renderArchive();
+    } catch (e) { showError(e.message); }
+  }
+
+  function renderArchive() {
+    const tbody = document.getElementById("archiveTable");
+    const mob = document.getElementById("archiveMobile");
+    const pager = document.getElementById("archivePager");
+    if (!tbody) return;
+    const totalPages = Math.max(1, Math.ceil(archiveTotal / 50));
+
+    if (!archiveCache.length) {
+      tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4"><i class="fa-solid fa-box-open fs-3 d-block mb-2"></i>الأرشيف فارغ</td></tr>';
+      if (mob) mob.innerHTML = '<div class="text-center text-muted py-4"><i class="fa-solid fa-box-open fs-3 d-block mb-2"></i>الأرشيف فارغ</div>';
+      if (pager) pager.innerHTML = archiveTotal === 0 ? "" : "";
+      return;
+    }
+
+    tbody.innerHTML = archiveCache.map((c, idx) => {
+      const p = normalizePhone(c.phone);
+      return `
+        <tr class="crm-row" onclick="rowClick(event, '${esc(c.id)}')">
+          <td><span class="num-badge" style="background:${statusColor(c.status)}">${(archivePage - 1) * 50 + idx + 1}</span></td>
+          <td><strong>${esc(c.name)}</strong><br><small class="text-muted num-dir">${esc(c.createdDate)}</small></td>
+          <td><div class="num-dir fw-bold">${esc(p.local)}</div></td>
+          <td>${esc(c.programCategory)}: ${esc(c.programName)}</td>
+          <td>${statusBadge(c.status)}</td>
+          <td><small class="fw-bold" style="color:var(--primary)">${esc(c.agentName)}</small></td>
+          <td class="text-nowrap">${rowMenu(c, 'clients')}</td>
+        </tr>`;
+    }).join("");
+
+    if (mob) mob.innerHTML = archiveCache.map((c, idx) => mobileRow(c, (archivePage - 1) * 50 + idx, 'clients', null)).join("");
+
+    if (pager) {
+      pager.innerHTML = `
+        <div class="small text-muted">عرض ${archiveCache.length} من ${archiveTotal} — صفحة ${archivePage} / ${totalPages}</div>
+        <div class="btn-group btn-group-sm">
+          <button class="btn btn-outline-danger" ${archivePage <= 1 ? "disabled" : ""} onclick="loadArchive(${archivePage - 1})"><i class="fa-solid fa-angle-right me-1"></i> السابق</button>
+          <button class="btn btn-outline-danger" ${archivePage >= totalPages ? "disabled" : ""} onclick="loadArchive(${archivePage + 1})">التالي <i class="fa-solid fa-angle-left ms-1"></i></button>
+        </div>`;
+    }
   }
 
   // =================== Lists المخصصة (لكل موظف) ===================
@@ -1962,13 +2173,31 @@
       return true;
     });
 
+    const pager = document.getElementById("clientsPager");
     if (filtered.length === 0) {
       tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-4"><i class="fa-solid fa-inbox fs-3 d-block mb-2"></i>لا توجد سجلات</td></tr>';
       if (mob) mob.innerHTML = '<div class="text-center text-muted py-4"><i class="fa-solid fa-inbox fs-3 d-block mb-2"></i>لا توجد سجلات</div>';
+      if (pager) pager.innerHTML = "";
       return;
     }
 
-    tbody.innerHTML = filtered.map((c, idx) => {
+    // تصفح: 50 سجل في كل صفحة (يبقى السيستم سريع مهما كبرت البيانات)
+    const fKey = search + "|" + searchDates.join(",") + "|" + (activeList ? activeList.id : "");
+    if (fKey !== clientsFilterKey) { clientsFilterKey = fKey; clientsPage = 1; }
+    const totalPages = Math.max(1, Math.ceil(filtered.length / CLIENTS_PER_PAGE));
+    if (clientsPage > totalPages) clientsPage = totalPages;
+    const pageRows = filtered.slice((clientsPage - 1) * CLIENTS_PER_PAGE, clientsPage * CLIENTS_PER_PAGE);
+
+    if (pager) {
+      pager.innerHTML = `
+        <div class="small text-muted">عرض ${pageRows.length} من ${filtered.length} سجل — صفحة ${clientsPage} / ${totalPages}</div>
+        <div class="btn-group btn-group-sm">
+          <button class="btn btn-outline-primary" ${clientsPage <= 1 ? "disabled" : ""} onclick="clientsPage--; renderClients(); document.getElementById('sec-clients').scrollIntoView({behavior:'smooth'})"><i class="fa-solid fa-angle-right me-1"></i> السابق</button>
+          <button class="btn btn-outline-primary" ${clientsPage >= totalPages ? "disabled" : ""} onclick="clientsPage++; renderClients(); document.getElementById('sec-clients').scrollIntoView({behavior:'smooth'})">التالي <i class="fa-solid fa-angle-left ms-1"></i></button>
+        </div>`;
+    }
+
+    tbody.innerHTML = pageRows.map((c, idx) => {
       const p = normalizePhone(c.phone);
       const progDisplay = c.programCategory === "تركيا"
         ? `تركيا: ${esc(c.programName)}${c.turkeySubName ? ` (${esc(c.turkeySubName)})` : ''}`
@@ -1990,7 +2219,7 @@
 
       return `
         <tr class="crm-row" onclick="rowClick(event, '${esc(c.id)}')">
-          <td><span class="num-badge" style="background:${statusColor(c.status)}">${idx + 1}</span></td>
+          <td><span class="num-badge" style="background:${statusColor(c.status)}">${(clientsPage - 1) * CLIENTS_PER_PAGE + idx + 1}</span></td>
           <td><strong>${esc(c.name)}</strong><br><small class="text-muted num-dir">${esc(c.createdDate)}</small></td>
           <td><div class="num-dir fw-bold">${esc(p.local)}</div></td>
           <td>${progDisplay}${tripShort(c)}</td>
@@ -2003,7 +2232,7 @@
       `;
     }).join("");
 
-    if (mob) mob.innerHTML = filtered.map((c, idx) => mobileRow(c, idx, 'clients', dueMap)).join("");
+    if (mob) mob.innerHTML = pageRows.map((c, idx) => mobileRow(c, (clientsPage - 1) * CLIENTS_PER_PAGE + idx, 'clients', dueMap)).join("");
   }
 
   // =================== المتابعات والتنبيهات ===================
@@ -2181,7 +2410,7 @@
     function renderPendingBooking() {
     const tbody = document.getElementById("pendingTable");
     const mob = document.getElementById("pendingMobile");
-    const list = allData.clients.filter(c => c.status === "هيحجز");
+    const list = allData.clients.filter(c => SUPERVISOR_STATUSES.includes(c.status));
     const b = document.getElementById("pendingBadge");
     if (b) b.innerText = list.length;
     if (!tbody) return;
@@ -2337,15 +2566,27 @@
 
   const LOST_STATUSES = ["مش هيحجز", "قفل السكه في وشي", "مش بيرد"];
 
+  // نظام شرائح العمولة الشهرية (v5.4): تُطبق بأثر رجعي على إجمالي الأفراد المؤكدين المحصلين
+  function calcCommission(persons) {
+    const r = allData.settings || {};
+    const b1 = Number(r.comBreak1 || 20), b2 = Number(r.comBreak2 || 25), b3 = Number(r.comBreak3 || 30);
+    const r1 = Number(r.comRate1 || 50), r2 = Number(r.comRate2 || 75), r3 = Number(r.comRate3 || 90), r4 = Number(r.comRate4 || 100);
+    persons = Number(persons || 0);
+    const rate = persons >= b3 ? r4 : persons >= b2 ? r3 : persons >= b1 ? r2 : r1;
+    return persons * rate;
+  }
+
   function renderStats() {
     const filtered = getStatsFiltered();
     lastStatsFiltered = filtered;
 
-    let totalSales = 0, totalBookedMembers = 0, totalComm = 0, bookedCount = 0, totalPaid = 0, lostCount = 0, pendingCount = 0;
+    let totalSales = 0, totalBookedMembers = 0, totalComm = 0, bookedCount = 0, totalPaid = 0, lostCount = 0, pendingCount = 0, expectedCount = 0;
     const statusCounts = {};
     const empStats = {};
     const progStats = {};
     const monthSales = {};
+    const ymNow = localDateStr().slice(0, 7);
+    const monthPersons = {};
 
     filtered.forEach(c => {
       const st = c.status || "غير محدد";
@@ -2360,7 +2601,8 @@
       progStats[pn].total++;
 
       if (LOST_STATUSES.includes(st)) lostCount++;
-      if (st === "هيحجز") pendingCount++;
+      if (SUPERVISOR_STATUSES.includes(st)) pendingCount++;
+      if (EXPECTED_STATUSES.includes(st)) expectedCount++;
 
       if (st === "تم الحجز والتعاقد") {
         bookedCount++;
@@ -2369,7 +2611,7 @@
         totalSales += price;
         totalPaid += Number(c.paidAmount || 0);
         totalBookedMembers += members;
-        totalComm += members * 500;
+        if (Number(c.paidAmount || 0) > 0) monthPersons[agent] = (monthPersons[agent] || 0) + members;
 
         empStats[agent].bookedClients++;
         empStats[agent].totalSales += price;
@@ -2388,6 +2630,9 @@
     document.getElementById("stBookedCount").innerText = `${totalBookedMembers} أفراد`;
     document.getElementById("stCommission").innerText = `${totalComm.toLocaleString()} ج.م`;
     document.getElementById("stTotalClients").innerText = `${filtered.length} عميل`;
+    document.getElementById("stExpected").innerText = `${expectedCount} عميل`;
+    document.getElementById("kpiExpected").innerText = expectedCount;
+    Object.keys(monthPersons).forEach(a => { totalComm += calcCommission(monthPersons[a]); });
 
     const n = filtered.length;
     const pct = (a, b) => b > 0 ? ((a / b) * 100).toFixed(1) : "0.0";
@@ -2433,7 +2678,8 @@
       empTable.innerHTML = Object.keys(empStats).map(agent => {
         const es = empStats[agent];
         const cr = pct(es.bookedClients, es.totalClients);
-        const comm = es.bookedMembers * 500;
+        const monthP = monthPersons[agent] || 0;
+        const comm = calcCommission(monthP);
         let ratingTxt = "مقبول", ratingBadge = '<span class="badge bg-secondary">مقبول</span>';
         if (parseFloat(cr) >= 30) { ratingTxt = "ممتاز"; ratingBadge = '<span class="badge bg-success">ممتاز 🔥</span>'; }
         else if (parseFloat(cr) >= 15) { ratingTxt = "جيد جداً"; ratingBadge = '<span class="badge bg-info text-dark">جيد جداً</span>'; }
@@ -2463,11 +2709,16 @@
     if (container) {
       container.innerHTML = "";
       Object.keys(statusCounts).forEach(st => {
+        const sc = statusStyle(st).badge;
         container.innerHTML += `
           <div class="col-md-3 col-6">
-            <div class="card p-2 text-center border clickable-card status-count-card" style="background:${statusStyle(st).bg};border-color:${statusStyle(st).badge} !important;" data-status="${esc(st)}" onclick="openStatDrilldown(this.dataset.status)">
-              <small style="color:var(--text)">${esc(st)}</small>
-              <h4 class="m-0 fw-bold" style="color:${statusStyle(st).badge}">${statusCounts[st]}</h4>
+            <div class="tt-card clickable-card" data-status="${esc(st)}" onclick="openStatDrilldown(this.dataset.status)">
+              <div class="tt-avatar" style="background:${sc}">${esc(String(st).trim().charAt(0))}</div>
+              <div class="tt-body">
+                <div class="tt-name">${esc(st)}</div>
+                <div class="tt-meta"><i class="fa-solid fa-users me-1"></i>${statusCounts[st]} عميل &bull; اضغط للعرض</div>
+              </div>
+              <span class="tt-tag" style="background:${sc}">عرض</span>
             </div>
           </div>`;
       });
@@ -2492,17 +2743,21 @@
     document.body.appendChild(a); a.click(); a.remove();
   }
 
+  const SETTING_KEYS = ["targetSales", "targetPersons", "comBreak1", "comRate1", "comBreak2", "comRate2", "comBreak3", "comRate3", "comBreak4", "comRate4"];
   function fillTargetInputs() {
-    const a = document.getElementById("tgSalesInput"), b = document.getElementById("tgPersonsInput");
-    if (a && document.activeElement !== a) a.value = allData.settings.targetSales || "";
-    if (b && document.activeElement !== b) b.value = allData.settings.targetPersons || "";
+    SETTING_KEYS.forEach(k => {
+      const el = document.getElementById(k === "targetSales" ? "tgSalesInput" : k === "targetPersons" ? "tgPersonsInput" : k);
+      if (el && document.activeElement !== el) el.value = allData.settings[k] || "";
+    });
   }
 
   async function saveTargets() {
     try {
-      await api({ action: "saveSetting", role: currUser.role, key: "targetSales", value: document.getElementById("tgSalesInput").value || "0" }, { post: true, label: "جاري حفظ الأهداف..." });
-      await api({ action: "saveSetting", role: currUser.role, key: "targetPersons", value: document.getElementById("tgPersonsInput").value || "0" }, { post: true, label: "جاري حفظ الأهداف..." });
-      alert("تم حفظ الأهداف");
+      for (const k of SETTING_KEYS) {
+        const el = document.getElementById(k === "targetSales" ? "tgSalesInput" : k === "targetPersons" ? "tgPersonsInput" : k);
+        await api({ action: "saveSetting", role: currUser.role, key: k, value: (el && el.value) || "0" }, { post: true, label: "جاري حفظ الأهداف والعمولات..." });
+      }
+      alert("تم حفظ الأهداف وشرائح العمولة");
       refreshData();
     } catch (e) { showError(e.message); }
   }
@@ -2521,11 +2776,23 @@
     let clientsList = [];
     if (statusCategory === 'الكل') {
       clientsList = base;
+    } else if (statusCategory === 'متوقع') {
+      clientsList = base.filter(c => EXPECTED_STATUSES.includes(c.status));
+    } else if (statusCategory === 'SUPERVISOR') {
+      clientsList = base.filter(c => SUPERVISOR_STATUSES.includes(c.status));
     } else if (statusCategory === 'المبيعات المؤكدة' || statusCategory === 'تم الحجز والتعاقد' || statusCategory === 'العمولات') {
       clientsList = base.filter(c => c.status === "تم الحجز والتعاقد");
     } else {
       clientsList = base.filter(c => c.status === statusCategory);
     }
+
+    const tBar = document.getElementById('drillTransferBar');
+    const sel = document.getElementById('drillEmpSelect');
+    const agentsMap = {};
+    allData.clients.forEach(c => { if (c.agentName) agentsMap[c.agentName] = c.agentCode || ''; });
+    sel.innerHTML = '<option value="">— اختر الموظف —</option>' + Object.keys(agentsMap).map(a => `<option value="${esc(a)}" data-code="${esc(agentsMap[a])}">${esc(a)}</option>`).join("");
+    tBar.classList.toggle('hidden', !mgr);
+    const allChk = document.getElementById('drillAllChk'); if (allChk) allChk.checked = false;
 
     const empBox = document.getElementById("statDrillEmployees");
     const empCount = {};
@@ -2534,12 +2801,13 @@
       Object.keys(empCount).map(a => `<span class="badge fs-6" style="background:var(--primary)">${esc(a)} <span class="badge bg-light text-dark">${empCount[a]}</span></span>`).join("");
 
     if (clientsList.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted">لا يوجد عملاء في هذه الإحصائية</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="10" class="text-center text-muted">لا يوجد عملاء في هذه الإحصائية</td></tr>';
     } else {
       tbody.innerHTML = clientsList.map((c, idx) => {
         const p = normalizePhone(c.phone);
         return `
-          <tr>
+          <tr onclick="openClientDetails('${esc(c.id)}')">
+            <td onclick="event.stopPropagation()"><input type="checkbox" class="drill-chk" data-id="${esc(c.id)}"></td>
             <td class="num-dir fw-bold">${idx + 1}</td>
             <td><strong>${esc(c.name)}</strong></td>
             <td><span class="num-dir">${esc(p.local)}</span></td>
@@ -2548,8 +2816,9 @@
             <td>${statusBadge(c.status)}</td>
             <td><strong style="color:var(--primary)">${esc(c.agentName)}</strong></td>
             <td><small class="num-dir">${esc(c.createdDate)}</small></td>
-            <td class="text-nowrap">
+            <td class="text-nowrap" onclick="event.stopPropagation()">
               ${mgr ? `<button onclick="openSendNoteModal('${esc(c.id)}', true)" class="btn btn-sm btn-outline-info" title="إرسال تنبيه للموظف الكاتب"><i class="fa-solid fa-paper-plane me-1"></i> تنبيه</button>` : ''}
+              <button onclick="editClient('${esc(c.id)}')" class="btn btn-sm btn-outline-primary" title="فتح وتعديل بيانات العميل"><i class="fa-regular fa-pen-to-square me-1"></i> تعديل</button>
               <button onclick="printClient('${esc(c.id)}')" class="btn btn-sm btn-outline-secondary" title="طباعة"><i class="fa-solid fa-print"></i></button>
             </td>
           </tr>`;
@@ -2563,6 +2832,7 @@
   function isNoteForMe(n) {
     const to = String(n.toUser || "").trim().toLowerCase();
     if (!to) return false;
+    if (to === "all") return true;
     const mine = [currUser?.username, currUser?.name, currUser?.code].filter(Boolean).map(x => String(x).toLowerCase());
     if (mine.includes(to)) return true;
     return isManagerRole() && (to === "المشرف");
@@ -2729,7 +2999,9 @@
   function onPbCategoryChange() {
     const cat = document.getElementById("pbCategory").value;
     const keep = readTripForm("pbForm");
+    const keepRooms = (editingProgramId && tripCtx['pbForm'] && tripCtx['pbForm'].vals) ? tripCtx['pbForm'].vals.roomPrices : null;
     renderTripForm("pbForm", cat, editingProgramId ? keep : { name: keep.name, price: keep.price }, false);
+    renderPbRooms(keepRooms);
   }
 
   function resetProgramBuilder() {
@@ -2743,6 +3015,14 @@
     const details = readTripForm("pbForm");
     if (!String(details.name || "").trim()) return alert("اكتب اسم البرنامج");
     if (cat === "تركيا" && !details.country) details.country = "تركيا";
+    if (cat !== "رحلات داخلية") {
+      const rp = {};
+      ['double', 'triple', 'quad', 'quint', 'child', 'infant'].forEach(k => {
+        const el = document.getElementById('pbRoom_' + k);
+        if (el && el.value !== '') rp[k] = Number(el.value);
+      });
+      if (Object.keys(rp).length) details.roomPrices = rp;
+    }
     try {
       const res = await api({
         action: "saveProgram", role: currUser.role, id: editingProgramId || "",
@@ -2761,6 +3041,7 @@
     editingProgramId = p.id;
     document.getElementById("pbCategory").value = p.category;
     renderTripForm("pbForm", p.category, p.details, false);
+    renderPbRooms(p.details ? p.details.roomPrices : null);
     document.getElementById("pbEditingInfo").innerText = "جاري تعديل: " + p.name;
     document.getElementById("pbForm").scrollIntoView({ behavior: "smooth", block: "center" });
   }
@@ -2837,6 +3118,7 @@
       currentTrip = { programId: "", details: null };
     }
     renderTripBox();
+    if (!currentTrip.details) { document.getElementById('roomTypeDiv')?.classList.add('hidden'); }
   }
 
   function autoFillPrice() {
@@ -2850,7 +3132,14 @@
     }
   }
 
-  function onMembersChange() { autoFillPrice(); }
+  function onMembersChange() {
+    const d = currentTrip.details;
+    if (d && d.roomType && d.roomPricePerPerson) {
+      const total = String(Number(d.roomPricePerPerson) * Number(document.getElementById("cMembers").value || 1));
+      document.getElementById("cPrice").value = total;
+      lastAutoPrice = total;
+    } else autoFillPrice();
+  }
 
   function renderTripBox() {
     const wrap = document.getElementById("tripBoxWrap");
@@ -2862,6 +3151,7 @@
     const cat = document.getElementById("cProgramCategory").value;
     const mgr = isManagerRole();
     renderTripForm("tripForm", cat, d, !mgr);
+    syncRoomSelect();
 
     document.getElementById("tripApprovedInfo").innerText = d._approvedBy ? `آخر تعديل معتمد بواسطة المدير: ${d._approvedBy}` : "";
 
@@ -2911,7 +3201,7 @@
     document.getElementById("customStatusDiv")?.classList.toggle("hidden", st !== "OTHER");
     document.getElementById("postponeMonthDiv")?.classList.toggle("hidden", st !== "هياجل لشهر تاني");
     document.getElementById("paymentSectionDiv")?.classList.toggle("hidden", st !== "تم الحجز والتعاقد");
-    document.getElementById("willBookInfo")?.classList.toggle("hidden", st !== "هيحجز");
+    document.getElementById("willBookInfo")?.classList.toggle("hidden", !(st === "هيحجز" || st === "Near Closed"));
 
     if (st === "هياجل لشهر تاني") {
       document.getElementById("cIsFollowup").checked = true;
@@ -2920,7 +3210,7 @@
   }
 
   function editClient(id, completion) {
-    const c = allData.clients.find(x => String(x.id) === String(id));
+    const c = allData.clients.find(x => String(x.id) === String(id)) || archiveCache.find(x => String(x.id) === String(id));
     if (!c) return;
 
     document.getElementById("cId").value = c.id;
@@ -2964,6 +3254,8 @@
     document.getElementById("cFb1").value = c.fb1 || "";
     document.getElementById("cFb2").value = c.fb2 || "";
     document.getElementById("cFb3").value = c.fb3 || "";
+    const snEl = document.getElementById("cSupervisorNote");
+    if (snEl) snEl.value = c.supervisorNote || "";
 
     toggleFollowupFields();
 
@@ -3005,6 +3297,12 @@
 
     let tripDetails = currentTrip.details;
     if (tripDetails && isManagerRole()) tripDetails = readTripForm("tripForm");
+    if (tripDetails && !document.getElementById('roomTypeDiv').classList.contains('hidden')) {
+      tripDetails = Object.assign({}, tripDetails, {
+        roomType: document.getElementById('cRoomType').value,
+        roomPricePerPerson: tripDetails.roomPricePerPerson
+      });
+    }
 
     const body = {
       action: "saveClient",
@@ -3032,7 +3330,8 @@
       followupTime: fTime,
       followupDay: document.getElementById("cFollowupDay").value,
       createdDate: document.getElementById("cCreatedDate").value || localDateStr(),
-      fb1: fb1, fb2: fb2, fb3: fb3
+      fb1: fb1, fb2: fb2, fb3: fb3,
+      supervisorNote: (document.getElementById("cSupervisorNote") || {}).value || ""
     };
 
     try {
@@ -3043,6 +3342,7 @@
     completionFor = null;
     bsClientModal.hide();
     refreshData();
+    if (document.getElementById("sec-archive") && !document.getElementById("sec-archive").classList.contains("hidden")) loadArchive(archivePage);
   }
 
   async function toggleFollowup(id, status) {
@@ -3057,6 +3357,8 @@
     try {
       await api({ action: "deleteClient", id }, { post: true, label: "جاري الحذف..." });
       refreshData();
+      archiveCache = archiveCache.filter(x => String(x.id) !== String(id));
+      if (document.getElementById("sec-archive") && !document.getElementById("sec-archive").classList.contains("hidden")) loadArchive(archivePage);
     } catch (e) { showError(e.message); }
   }
 
@@ -3136,7 +3438,7 @@
 function switchTab(tab) {
     document.querySelectorAll("#mainTabs .nav-link").forEach(a => a.classList.remove("active"));
     document.getElementById(`t-${tab}`)?.classList.add("active");
-    ["clients", "followup", "pending", "requests", "finance", "stats", "settings", "users"].forEach(s => {
+    ["clients", "followup", "pending", "archive", "requests", "finance", "stats", "settings", "users"].forEach(s => {
       const el = document.getElementById(`sec-${s}`);
       if (el) el.classList.add("hidden");
     });
@@ -3155,10 +3457,121 @@ function switchTab(tab) {
     completionFor = null;
     document.getElementById("completionBanner").classList.add("hidden");
     currentTrip = { programId: "", details: null };
+    const snEl2 = document.getElementById("cSupervisorNote"); if (snEl2) snEl2.value = "";
+    document.getElementById('roomTypeDiv')?.classList.add('hidden');
     onCategoryChange();
     onStatusChange();
     toggleFollowupFields();
     bsClientModal.show();
+  }
+
+  // =================== v5.4: نقل جماعي + بث + الأعلى مبيعات ===================
+  function toggleDrillAll(chk) {
+    document.querySelectorAll('.drill-chk').forEach(c => { c.checked = chk.checked; });
+  }
+
+  async function transferSelectedClients() {
+    const ids = [...document.querySelectorAll('.drill-chk:checked')].map(c => c.dataset.id);
+    const sel = document.getElementById('drillEmpSelect');
+    if (!ids.length) return alert('حدد عميل واحد على الأقل من القائمة (✔)');
+    if (!sel.value) return alert('اختر الموظف الذي سينقل إليه العملاء');
+    if (!confirm(`تأكيد نقل ${ids.length} عميل إلى الموظف (${sel.value})؟\nهيوصلوله في سجلاته علشان يتابع معاهم.`)) return;
+    try {
+      const res = await api({ action: "transferClients", role: currUser.role, ids: ids.join(","), agentName: sel.value, agentCode: sel.selectedOptions[0].dataset.code || "" }, { post: true, label: "جاري نقل العملاء..." });
+      alert(res.message || "تم النقل بنجاح");
+      bsStatDrillModal.hide();
+      refreshData();
+    } catch (e) { showError(e.message); }
+  }
+
+  async function sendBroadcast() {
+    const t = document.getElementById('broadcastText').value.trim();
+    if (!t) return alert('اكتب الملاحظة الأول');
+    if (!confirm('إرسال الملاحظة لكل الموظفين؟')) return;
+    try {
+      await api({ action: "sendAdminNote", fromUser: currUser.name || currUser.username, toUser: "ALL", clientId: "", clientName: "ملاحظة عامة", noteText: t }, { post: true, label: "جاري الإرسال للجميع..." });
+      document.getElementById('broadcastText').value = "";
+      alert("تم إرسال الملاحظة لكل الموظفين");
+      refreshData(true);
+    } catch (e) { showError(e.message); }
+  }
+
+  // الأعلى مبيعات ومتابعة هذا الشهر — يظهر لكل الموظفين في القائمة الجانبية مع أنيميشن
+  function renderTopSeller() {
+    const box = document.getElementById('topSellerBox');
+    if (!box) return;
+    const ym = localDateStr().slice(0, 7);
+    const agg = {};
+    allData.clients.forEach(c => {
+      if (c.status !== 'تم الحجز والتعاقد') return;
+      if ((c.createdDate || '').slice(0, 7) !== ym) return;
+      const a = c.agentName || 'غير محدد';
+      agg[a] = agg[a] || { p: 0, s: 0, f: 0 };
+      agg[a].p += Number(c.members || 1);
+      agg[a].s += Number(c.price || 0);
+    });
+    allData.clients.forEach(c => {
+      if (!c.isFollowup) return;
+      const a = c.agentName || 'غير محدد';
+      agg[a] = agg[a] || { p: 0, s: 0, f: 0 };
+      agg[a].f++;
+    });
+    const arr = Object.keys(agg).map(a => Object.assign({ a }, agg[a])).sort((x, y) => y.s - x.s);
+    if (!arr.length) { box.innerHTML = ''; return; }
+    const w = arr[0];
+    box.innerHTML = `
+      <div class="top-seller-card">
+        <div class="trophy"><i class="fa-solid fa-trophy"></i></div>
+        <div style="min-width:0">
+          <div class="fw-bold" style="font-size:13px">🎉 الأعلى مبيعات هذا الشهر</div>
+          <div class="fw-bold text-truncate" style="color:var(--warning);font-size:15px">${esc(w.a)}</div>
+          <div class="small num-dir" style="color:var(--muted)">${w.p} فرد • ${w.s.toLocaleString()} ج.م${w.f ? ' • ' + w.f + ' متابعة' : ''}</div>
+        </div>
+      </div>`;
+  }
+
+  // =================== v5.4: أسعار الغرف ===================
+  function renderPbRooms(existing) {
+    const cat = document.getElementById('pbCategory').value;
+    const wrap = document.getElementById('pbForm');
+    const oldBlk = wrap.querySelector('#pbRoomsBlock'); if (oldBlk) oldBlk.remove();
+    if (cat === 'رحلات داخلية') return;
+    const r = existing || {};
+    const f = (k, l) => `<div class="col-md-2 col-4"><label class="form-label small fw-bold">${l}</label><input type="number" class="form-control form-control-sm num-dir" id="pbRoom_${k}" value="${r[k] !== undefined ? esc(r[k]) : ''}" min="0" placeholder="0"></div>`;
+    wrap.insertAdjacentHTML('beforeend', `
+      <div id="pbRoomsBlock" class="mt-2 p-2 rounded" style="border:1.5px dashed var(--warning);background:var(--hover-bg)">
+        <div class="fw-bold small mb-1" style="color:var(--warning)"><i class="fa-solid fa-bed me-1"></i> أسعار الغرف (سعر الفرد لكل نوع غرفة)</div>
+        <div class="row g-2">${f('double', 'ثنائي')}${f('triple', 'ثلاثي')}${f('quad', 'رباعي')}${f('quint', 'خماسي')}${f('child', 'طفل')}${f('infant', 'رضيع')}</div>
+        <div class="small text-muted mt-1">لما الموظف يختار البرنامج هيظهرله اختيار نوع الغرفة والسعر بيسحب تلقائياً.</div>
+      </div>`);
+  }
+
+  function syncRoomSelect() {
+    const d = currentTrip.details;
+    const div = document.getElementById('roomTypeDiv');
+    const sel = document.getElementById('cRoomType');
+    if (!div || !sel) return;
+    if (d && d.roomPrices && Object.keys(d.roomPrices).length) {
+      div.classList.remove('hidden');
+      [...sel.options].forEach(o => { if (o.value) o.style.display = (d.roomPrices[o.value] !== undefined && d.roomPrices[o.value] !== '') ? '' : 'none'; });
+      sel.value = d.roomType || '';
+    } else {
+      div.classList.add('hidden');
+      sel.value = '';
+    }
+  }
+
+  function onRoomTypeChange() {
+    const d = currentTrip.details;
+    if (!d) return;
+    const rt = document.getElementById('cRoomType').value;
+    d.roomType = rt;
+    if (rt && d.roomPrices && d.roomPrices[rt] !== undefined && d.roomPrices[rt] !== '') {
+      d.roomPricePerPerson = Number(d.roomPrices[rt]);
+      const total = String(d.roomPricePerPerson * Number(document.getElementById('cMembers').value || 1));
+      document.getElementById('cPrice').value = total;
+      lastAutoPrice = total;
+    }
   }
 
   // =================== طباعة استمارة / عقد العميل ===================
